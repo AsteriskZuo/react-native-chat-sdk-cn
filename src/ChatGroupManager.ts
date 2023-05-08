@@ -329,8 +329,8 @@ export class ChatGroupManager extends BaseManager {
    *
    * 此操作只返回群组列表，不包含群组的所有成员信息。如果要更新某个群组包括成员的全部信息，需要再调用 {@link #fetchMemberListFromServer}。
    *
-   * @param pageSize 每页期望返回的群组数。
-   * @param pageNum 当前页码，从 1 开始。
+   * @param pageSize 每页期望返回的群组数。[1, 20]
+   * @param pageNum 当前页码，从 0 开始。
    * @returns 当前用户已加入的群组列表
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。

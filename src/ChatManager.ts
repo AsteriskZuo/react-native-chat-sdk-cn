@@ -9,6 +9,7 @@ import { ChatCursorResult } from './common/ChatCursorResult';
 import { ChatError } from './common/ChatError';
 import { ChatGroupMessageAck } from './common/ChatGroup';
 import {
+  ChatFetchMessageOptions,
   ChatMessage,
   ChatMessageChatType,
   ChatMessageStatus,
@@ -95,11 +96,14 @@ import {
   MTfetchConversationsFromServerWithPage,
   MTremoveMessagesFromServerWithMsgIds,
   MTremoveMessagesFromServerWithTs,
+  MTfetchHistoryMessagesByOptions,
+  MTdeleteMessagesWithTs,
 } from './__internal__/Consts';
 import { Native } from './__internal__/Native';
 import {
   ChatMessageReaction,
   ChatMessageReactionEvent,
+  ChatReactionOperation,
 } from './common/ChatMessageReaction';
 import {
   ChatMessageThread,
@@ -322,11 +326,16 @@ export class ChatManager extends BaseManager {
         Object.entries(v[1].reactions).forEach((vv: [string, any]) => {
           ll.push(new ChatMessageReaction(vv[1]));
         });
+        const o: Array<ChatReactionOperation> = [];
+        Object.entries(v[1].operations).forEach((vv: [string, any]) => {
+          o.push(ChatReactionOperation.fromNative(vv[1]));
+        });
         list.push(
           new ChatMessageReactionEvent({
             convId: convId,
             msgId: msgId,
             reactions: ll,
+            operations: o,
           })
         );
       });
@@ -816,17 +825,64 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 从本地数据库获取指定会话中一定数量的消息。
+   * 根据消息拉取参数配置从服务器分页获取指定会话的历史消息。
+   *
+   * @param convId 会话 ID。
+   * @param chatType 会话类型。详见 {@link ChatConversationType}.
+   * @param params -
+   * - options: 查询历史消息的参数配置类。详见 {@link ChatFetchMessageOptions}.
+   * - cursor: 查询的起始游标位置。
+   * - pageSize: 每页期望获取的消息条数。取值范围为 [1,50]。
+   *
+   * @returns 消息列表（不包含查询起始 ID 的消息）和下次查询的 cursor。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async fetchHistoryMessagesByOptions(
+    convId: string,
+    chatType: ChatConversationType,
+    params?: {
+      options?: ChatFetchMessageOptions;
+      cursor?: string;
+      pageSize?: number;
+    }
+  ): Promise<ChatCursorResult<ChatMessage>> {
+    chatlog.log(
+      `${ChatManager.TAG}: fetchHistoryMessagesByOptions: ${convId}, ${chatType}, ${params}`
+    );
+    let r: any = await Native._callMethod(MTfetchHistoryMessagesByOptions, {
+      [MTfetchHistoryMessagesByOptions]: {
+        convId: convId,
+        convType: chatType as number,
+        pageSize: params?.pageSize ?? 20,
+        cursor: params?.cursor ?? '',
+        options: params?.options,
+      },
+    });
+    Native.checkErrorFromResult(r);
+    let ret = new ChatCursorResult<ChatMessage>({
+      cursor: r?.[MTfetchHistoryMessagesByOptions].cursor,
+      list: r?.[MTfetchHistoryMessagesByOptions].list,
+      opt: {
+        map: (param: any) => {
+          return new ChatMessage(param);
+        },
+      },
+    });
+    return ret;
+  }
+
+  /**
+   * 从本地数据库获取指定会话中包含特定关键字的消息。
    *
    * @param keywords 查询关键字。
-   * @param timestamp 搜索的起始 Unix 时间戳，单位为毫秒。
-   * @param maxCount 每次获取的最大消息数。取值范围为 [1,50]。
-   * @param from 搜索来自指定用户或者群组的消息，一般为会话 ID。
-   * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的顺序加载。
-   *
-   * @returns 消息列表。
+   * @param timestamp 查询的起始消息 Unix 时间戳，单位为毫秒。该参数设置后，SDK 从指定时间戳的消息开始，按消息搜索方向获取。 如果该参数设置为负数，SDK 从当前时间开始搜索。
+   * @param maxCount 每次获取的最大消息数。取值范围为 [1,400]。
+   * @param from 单聊或群聊中的消息发送方的用户 ID。若设置为 `null` 或空字符串，SDK 将在整个会话中搜索消息。
+   * @param direction 消息搜索方向。详见  {@link ChatSearchDirection}.
+   *                  - (Default) `ChatSearchDirection.Up`: 按照消息中的时间戳的逆序查询
+   *                  - `ChatSearchDirection.Down`: 按照消息中的时间戳的正序查询。
+   * @returns 消息列表（不包含查询起始时间戳对应的消息）。若未查找到任何消息，返回空列表。
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    */
@@ -1264,10 +1320,43 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 删除内存和本地数据库中指定会话的所有消息。
+   * 从本地数据库中删除指定时间段内的消息。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
+   * @param convType 会话类型，详见 {@link ChatConversationType}.
+   * @param params -
+   * - startTs: 删除消息的起始时间。Unix 时间戳，单位为毫秒。
+   * - endTs: 删除消息的结束时间。Unix 时间戳，单位为毫秒。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async deleteMessagesWithTimestamp(
+    convId: string,
+    convType: ChatConversationType,
+    params: {
+      startTs: number;
+      endTs: number;
+    }
+  ): Promise<void> {
+    chatlog.log(
+      `${ChatManager.TAG}: deleteMessagesWithTimestamp: ${convId}, ${convType}, ${params}`
+    );
+    let r: any = await Native._callMethod(MTdeleteMessagesWithTs, {
+      [MTdeleteMessagesWithTs]: {
+        convId: convId,
+        convType: convType,
+        startTs: params.startTs,
+        endTs: params.endTs,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+  }
+
+  /**
+   * 清除内存和数据库中指定会话中的消息。
+   *
+   * @param convId 会话 ID。
+   * @param convType 会话类型，详见 {@link ChatConversationType}.
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    */
@@ -1348,7 +1437,7 @@ export class ChatManager extends BaseManager {
         direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
         timestamp: timestamp,
         count: count,
-        sender: sender,
+        sender: sender ?? '',
       },
     });
     ChatManager.checkErrorFromResult(r);

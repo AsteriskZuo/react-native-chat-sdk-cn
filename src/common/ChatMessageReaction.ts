@@ -1,5 +1,54 @@
 /**
- * 消息 Reaction 实体类，用于指定 Reaction 属性。
+ * Operation type of reaction.
+ */
+export enum ChatReactionOperate {
+  Remove,
+  Add,
+}
+
+/**
+ * 消息 Reaction 操作实体类。
+ */
+export class ChatReactionOperation {
+  /**
+   * 操作者 ID。
+   */
+  userId: string;
+  /**
+   * 发生变化的 Reaction。
+   */
+  reaction: string;
+  /**
+   * Reaction类型。详见 {@link ChatReactionOperate}
+   */
+  operate: ChatReactionOperate;
+  constructor(params: {
+    userId: string;
+    reaction: string;
+    operate: ChatReactionOperate;
+  }) {
+    this.userId = params.userId;
+    this.reaction = params.reaction;
+    this.operate = params.operate;
+  }
+  public static fromNative(params: {
+    userId: string;
+    reaction: string;
+    operate: number;
+  }): ChatReactionOperation {
+    let o: ChatReactionOperate = ChatReactionOperate.Add;
+    if (params.operate === 0) {
+      o = ChatReactionOperate.Remove;
+    } else if (params.operate === 1) {
+      o = ChatReactionOperate.Add;
+    }
+    const ret = new ChatReactionOperation({ ...params, operate: o });
+    return ret;
+  }
+}
+
+/**
+ * 消息Reaction的类。
  */
 export class ChatMessageReaction {
   /**
@@ -49,13 +98,19 @@ export class ChatMessageReactionEvent {
    * Reaction 列表。
    */
   reactions: Array<ChatMessageReaction>;
+  /**
+   * 变化的Reaction操作列表。
+   */
+  operations: Array<ChatReactionOperation>;
   constructor(params: {
     convId: string;
     msgId: string;
     reactions: Array<ChatMessageReaction>;
+    operations: Array<ChatReactionOperation>;
   }) {
     this.convId = params.convId;
     this.msgId = params.msgId;
     this.reactions = params.reactions;
+    this.operations = params.operations;
   }
 }

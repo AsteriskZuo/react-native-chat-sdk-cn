@@ -54,6 +54,9 @@ import {
   MTupdateGroupOwner,
   MTupdateGroupSubject,
   MTuploadGroupSharedFile,
+  MTsetMemberAttributesFromGroup,
+  MTfetchMemberAttributesFromGroup,
+  MTfetchMembersAttributesFromGroup,
 } from './__internal__/Consts';
 import { Native } from './__internal__/Native';
 import { BaseManager } from './__internal__/Base';
@@ -243,6 +246,14 @@ export class ChatGroupManager extends BaseManager {
           break;
         case 'onSpecificationChanged':
           listener.onDetailChanged?.(new ChatGroup(params.group));
+          break;
+        case 'onMemberAttributesChanged':
+          listener.onMemberAttributesChanged?.({
+            groupId: params.groupId,
+            member: params.member,
+            operator: params.operator,
+            attributes: params.attributes,
+          });
           break;
         default:
           throw new ChatError({
@@ -1496,6 +1507,104 @@ export class ChatGroupManager extends BaseManager {
       },
     });
     ChatGroupManager.checkErrorFromResult(r);
+  }
+
+  /**
+   * 设置单个群成员的自定义属性。
+   *
+   * @param groupId 群组 ID。
+   * @param member 要设置自定义属性的群成员的用户 ID。
+   * @param attribute 要设置的群成员自定义属性的 map，为 key-value 格式。对于一个 key-value 键值对，若 value 设置空字符串即删除该自定义属性。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async setMemberAttribute(
+    groupId: string,
+    member: string,
+    attributes: Record<string, string>
+  ): Promise<void> {
+    chatlog.log(
+      `${ChatGroupManager.TAG}: setMemberAttribute: `,
+      groupId,
+      member,
+      attributes
+    );
+    let r: any = await Native._callMethod(MTsetMemberAttributesFromGroup, {
+      [MTsetMemberAttributesFromGroup]: {
+        groupId,
+        member,
+        attributes,
+      },
+    });
+    ChatGroupManager.checkErrorFromResult(r);
+  }
+
+  /**
+   * 获取单个群成员所有自定义属性。
+   *
+   * @param groupId 群组 ID。
+   * @param member 要获取的自定义属性的群成员的用户 ID。
+   *
+   * @returns 成员属性。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async fetchMemberAttributes(
+    groupId: string,
+    member: string
+  ): Promise<Record<string, string> | undefined> {
+    chatlog.log(
+      `${ChatGroupManager.TAG}: fetchMemberAttributes: `,
+      groupId,
+      member
+    );
+    let r: any = await Native._callMethod(MTfetchMemberAttributesFromGroup, {
+      [MTfetchMemberAttributesFromGroup]: {
+        groupId,
+        member,
+      },
+    });
+    ChatGroupManager.checkErrorFromResult(r);
+    return r?.[MTfetchMemberAttributesFromGroup];
+  }
+
+  /**
+   * 根据指定的属性 key 获取多个群成员的自定义属性。
+   *
+   * @param groupId 群组 ID。
+   * @param members 要获取自定义属性的群成员的用户 ID 数组。
+   * @param attributeKeys 要获取自定义属性的 key 的数组。若 keys 为空数组或不传则获取这些群成员的所有自定义属性。
+   *
+   * @returns 指定成员指定关键字的属性。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async fetchMembersAttributes(
+    groupId: string,
+    members: string[],
+    attributeKeys?: string[]
+  ): Promise<Map<string, Record<string, string>>> {
+    chatlog.log(
+      `${ChatGroupManager.TAG}: fetchMembersAttributes: `,
+      groupId,
+      members,
+      attributeKeys
+    );
+    let r: any = await Native._callMethod(MTfetchMembersAttributesFromGroup, {
+      [MTfetchMembersAttributesFromGroup]: {
+        groupId,
+        members,
+        keys: attributeKeys,
+      },
+    });
+    ChatGroupManager.checkErrorFromResult(r);
+    const ret: Map<string, Record<string, string>> = new Map();
+    Object.entries(r?.[MTfetchMembersAttributesFromGroup]).forEach(
+      (v: [string, any]) => {
+        ret.set(v[0], v[1]);
+      }
+    );
+    return ret;
   }
 
   /**

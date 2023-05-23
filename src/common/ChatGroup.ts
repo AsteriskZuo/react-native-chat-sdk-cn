@@ -25,7 +25,7 @@ export enum ChatGroupStyle {
 /**
  * 群组角色类型枚举。
  */
-export enum ChatGroupType {
+export enum ChatGroupPermissionType {
   /**
    * 未知。
    */
@@ -84,16 +84,18 @@ export function ChatGroupStyleToString(params: ChatGroupStyle): string {
  * @param params 整型的群成员角色类型。
  * @returns 枚举类型的群成员角色。
  */
-export function ChatGroupTypeFromNumber(params: number): ChatGroupType {
+export function ChatGroupPermissionTypeFromNumber(
+  params: number
+): ChatGroupPermissionType {
   switch (params) {
     case -1:
-      return ChatGroupType.None;
+      return ChatGroupPermissionType.None;
     case 0:
-      return ChatGroupType.Member;
+      return ChatGroupPermissionType.Member;
     case 1:
-      return ChatGroupType.Admin;
+      return ChatGroupPermissionType.Admin;
     case 2:
-      return ChatGroupType.Owner;
+      return ChatGroupPermissionType.Owner;
     default:
       throw new ChatError({
         code: 1,
@@ -108,8 +110,10 @@ export function ChatGroupTypeFromNumber(params: number): ChatGroupType {
  * @param params 枚举类型的群组角色。
  * @returns 字符串类型的群组角色。
  */
-export function ChatGroupTypeToString(params: ChatGroupType): string {
-  return ChatGroupType[params];
+export function ChatGroupPermissionTypeToString(
+  params: ChatGroupPermissionType
+): string {
+  return ChatGroupPermissionType[params];
 }
 
 /**
@@ -220,7 +224,7 @@ export class ChatGroup {
   /**
    * 当前用户在群组中的角色。
    */
-  permissionType: ChatGroupType;
+  permissionType: ChatGroupPermissionType;
   /**
    * 群组选项。
    */

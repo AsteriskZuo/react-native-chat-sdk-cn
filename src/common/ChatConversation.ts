@@ -1,6 +1,11 @@
 import { ChatClient } from '../ChatClient';
+import type { ChatCursorResult } from './ChatCursorResult';
 import { ChatError } from './ChatError';
-import type { ChatMessage, ChatMessageType } from './ChatMessage';
+import type {
+  ChatFetchMessageOptions,
+  ChatMessage,
+  ChatMessageType,
+} from './ChatMessage';
 
 /**
  * 消息搜索方向枚举。
@@ -274,11 +279,7 @@ export class ChatConversation {
    *
    * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
    */
-  public async deleteMessage(
-    convId: string,
-    convType: ChatConversationType,
-    msgId: string
-  ): Promise<void> {
+  public async deleteMessage(msgId: string): Promise<void> {
     return ChatClient.getInstance().chatManager.deleteMessage(
       this.convId,
       this.convType,
@@ -287,11 +288,31 @@ export class ChatConversation {
   }
 
   /**
-   * 删除指定会话中的消息。
+   * Deletes messages sent or received in a certain period from the local database.
    *
-   * 该方法同时删除指定会话在内存和数据库中的所有消息。
+   * @param params -
+   * - startTs: The starting UNIX timestamp for message deletion. The unit is millisecond.
+   * - endTs: The end UNIX timestamp for message deletion. The unit is millisecond.
    *
-   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   * @throws A description of the exception. See {@link ChatError}.
+   */
+  public async deleteMessagesWithTimestamp(params: {
+    startTs: number;
+    endTs: number;
+  }): Promise<void> {
+    return ChatClient.getInstance().chatManager.deleteMessagesWithTimestamp(
+      this.convId,
+      this.convType,
+      params
+    );
+  }
+
+  /**
+   * Deletes all the messages of the conversation.
+   *
+   * This method deletes all the messages of the conversation from both the memory and local database.
+   *
+   * @throws A description of the exception. See {@link ChatError}.
    */
   public async deleteAllMessages(): Promise<void> {
     return ChatClient.getInstance().chatManager.deleteAllMessages(
@@ -417,6 +438,51 @@ export class ChatConversation {
       endTime,
       direction,
       count
+    );
+  }
+
+  /**
+   * 从服务器分页获取指定会话的所有类型的历史消息。
+   *
+   * @param pageSize 每页期望获取的消息条数。取值范围为 [1,50]。
+   * @param startMsgId 开始获取的消息 ID。该参数设置后，SDK 从指定的消息 ID 开始，按服务器接收消息的时间的逆序获取。 若该参数为空，SDK 从最新的消息开始，按服务器接收消息的时间的逆序获取。
+   * @returns 消息列表（不包含查询起始 ID 的消息）和下次查询的 cursor。
+   *
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   */
+  public async fetchHistoryMessages(
+    pageSize: number = 20,
+    startMsgId: string = ''
+  ): Promise<ChatCursorResult<ChatMessage>> {
+    return ChatClient.getInstance().chatManager.fetchHistoryMessages(
+      this.convId,
+      this.convType,
+      pageSize,
+      startMsgId
+    );
+  }
+
+  /**
+   * 根据消息拉取参数配置从服务器分页获取指定会话的历史消息。
+   *
+   * @param params -
+   * - options: 查询历史消息的参数配置类， 详见 {@link ChatFetchMessageOptions}.
+   * - cursor: 查询的起始游标位置。
+   * - pageSize: 每页期望获取的消息条数。取值范围为 [1,50]。
+   *
+   * @returns 查询到的消息列表和下次查询的 cursor。
+   *
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   */
+  public async fetchHistoryMessagesByOptions(params?: {
+    options?: ChatFetchMessageOptions;
+    cursor?: string;
+    pageSize?: number;
+  }): Promise<ChatCursorResult<ChatMessage>> {
+    return ChatClient.getInstance().chatManager.fetchHistoryMessagesByOptions(
+      this.convId,
+      this.convType,
+      params
     );
   }
 }

@@ -154,6 +154,10 @@ export enum ChatMultiDeviceEvent {
    * 用户 A 在设备 A1 上将其他用户踢出子区，则设备 A2 上会收到该事件。
    */
   THREAD_KICK,
+  /**
+   * The current user modified custom attributes of a group member on another device.
+   */
+  GROUP_METADATA_CHANGED = 52,
 }
 
 /**
@@ -238,6 +242,8 @@ export function ChatMultiDeviceEventFromNumber(
       return ChatMultiDeviceEvent.THREAD_UPDATE;
     case 45:
       return ChatMultiDeviceEvent.THREAD_KICK;
+    case 52:
+      return ChatMultiDeviceEvent.GROUP_METADATA_CHANGED;
 
     default:
       throw new ChatError({
@@ -795,6 +801,22 @@ export interface ChatGroupEventListener {
    * @param group 群组对象。
    */
   onStateChanged?(group: ChatGroup): void;
+
+  /**
+   * 群组成员属性变化通知。
+   *
+   * @param params -
+   * - groupId: 群组ID。
+   * - member: 群组成员ID。
+   * - attributes: 群组成员属性，key-value格式。
+   * - operator: 修改属性的人。
+   */
+  onMemberAttributesChanged?(params: {
+    groupId: string;
+    member: string;
+    attributes: any;
+    operator: string;
+  }): void;
 }
 
 /**

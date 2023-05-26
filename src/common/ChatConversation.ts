@@ -442,23 +442,25 @@ export class ChatConversation {
   }
 
   /**
-   * 从服务器分页获取指定会话的所有类型的历史消息。
+   * 分页获取指定会话的历史消息。
    *
-   * @param pageSize 每页期望获取的消息条数。取值范围为 [1,50]。
-   * @param startMsgId 开始获取的消息 ID。该参数设置后，SDK 从指定的消息 ID 开始，按服务器接收消息的时间的逆序获取。 若该参数为空，SDK 从最新的消息开始，按服务器接收消息的时间的逆序获取。
-   * @returns 消息列表（不包含查询起始 ID 的消息）和下次查询的 cursor。
+   * @param -
+   * - pageSize: 每页期望返回的消息数量。
+   * - startMsgId: 开始消息 ID。如果该参数为空字符串或 `null`，SDK 按服务器最新接收消息的时间倒序获取。
+   * - direction: 消息搜索方向，详见 {@link ChatSearchDirection}
+   * @returns 获取到的消息和下次查询的 cursor。
    *
-   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    */
-  public async fetchHistoryMessages(
-    pageSize: number = 20,
-    startMsgId: string = ''
-  ): Promise<ChatCursorResult<ChatMessage>> {
+  public async fetchHistoryMessages(params: {
+    pageSize?: number;
+    startMsgId?: string;
+    direction?: ChatSearchDirection;
+  }): Promise<ChatCursorResult<ChatMessage>> {
     return ChatClient.getInstance().chatManager.fetchHistoryMessages(
       this.convId,
       this.convType,
-      pageSize,
-      startMsgId
+      params
     );
   }
 

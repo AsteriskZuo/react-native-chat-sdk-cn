@@ -788,8 +788,10 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param chatType 会话类型。详见 {@link ChatConversationType}。
-   * @param pageSize 每页期望返回的消息数量。
-   * @param startMsgId 开始消息 ID。如果该参数为空字符串或 `null`，SDK 按服务器最新接收消息的时间倒序获取。
+   * @param -
+   * - pageSize: 每页期望返回的消息数量。
+   * - startMsgId: 开始消息 ID。如果该参数为空字符串或 `null`，SDK 按服务器最新接收消息的时间倒序获取。
+   * - direction: 消息搜索方向，详见 {@link ChatSearchDirection}
    * @returns 获取到的消息和下次查询的 cursor。
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
@@ -797,18 +799,22 @@ export class ChatManager extends BaseManager {
   public async fetchHistoryMessages(
     convId: string,
     chatType: ChatConversationType,
-    pageSize: number = 20,
-    startMsgId: string = ''
+    params: {
+      pageSize?: number;
+      startMsgId?: string;
+      direction?: ChatSearchDirection;
+    }
   ): Promise<ChatCursorResult<ChatMessage>> {
     chatlog.log(
-      `${ChatManager.TAG}: fetchHistoryMessages: ${convId}, ${chatType}, ${pageSize}, ${startMsgId}`
+      `${ChatManager.TAG}: fetchHistoryMessages: ${convId}, ${chatType}, ${params}`
     );
     let r: any = await Native._callMethod(MTfetchHistoryMessages, {
       [MTfetchHistoryMessages]: {
         convId: convId,
         convType: chatType as number,
-        pageSize: pageSize,
-        startMsgId: startMsgId,
+        pageSize: params.pageSize ?? 20,
+        startMsgId: params.startMsgId ?? '',
+        direction: params.direction ?? ChatSearchDirection.UP,
       },
     });
     Native.checkErrorFromResult(r);

@@ -314,6 +314,11 @@ export interface ChatConnectEventListener {
    * Agora token 已过期时触发。
    */
   onTokenDidExpire?(): void;
+
+  /**
+   * The number of daily active users (DAU) or monthly active users (MAU) for the app has reached the upper limit.
+   */
+  onAppActiveNumberReachLimit?(): void;
 }
 
 /**

@@ -43,7 +43,7 @@ export class ChatPushConfig {
    */
   deviceToken?: string;
   /**
-   * 设备生产商，详见 {@link Platform#constants#Manufacturer}。
+   * 设备生产商，详见 {@link Platform.constants.Manufacturer}。
    */
   manufacturer?: string;
   /**
@@ -62,7 +62,7 @@ export class ChatPushConfig {
 }
 
 /**
- * 推送选项类
+ * 推送选项类。
  */
 export class ChatPushOption {
   /**

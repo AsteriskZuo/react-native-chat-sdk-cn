@@ -217,7 +217,7 @@ export class ChatRoomManager extends Native {
   /**
    * 加入聊天室。
    *
-   * 退出聊天室见： {@link #leaveChatRoom(String)}。
+   * 退出聊天室见： {@link leaveChatRoom}。
    *
    * @param roomId 要加入的聊天室的 ID。
    *

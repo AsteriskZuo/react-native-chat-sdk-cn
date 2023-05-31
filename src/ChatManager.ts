@@ -515,11 +515,11 @@ export class ChatManager extends BaseManager {
    *
    * **注意**
    *
-   * 该方法只有在 {@link ChatOptions#requireAck(bool)} 为 `true` 时才生效。
+   * 该方法只有在 {@link ChatOptions.requireAck} 为 `true` 时才生效。
    *
-   * 若发送群消息已读回执，详见 {@link #sendGroupMessageReadAck(String, String, String)}。
+   * 若发送群消息已读回执，详见 {@link sendGroupMessageReadAck}。
    *
-   * 推荐进入会话页面时调用 {@link #sendConversationReadAck(String)}，其他情况下调用该方法以减少调用频率。
+   * 推荐进入会话页面时调用 {@link sendConversationReadAck}，其他情况下调用该方法以减少调用频率。
    *
    * @param message 需要发送已读回执的消息。
    *
@@ -544,7 +544,7 @@ export class ChatManager extends BaseManager {
    *
    * **Warning**
    *
-   * - 该方法只有在 {@link ChatOptions#requireAck(bool)} 和 {@link ChatMessage#needGroupAck(bool)} 设置为 `true` 时才会生效。
+   * - 该方法只有在 {@link ChatOptions.requireAck} 和 {@link ChatMessage.needGroupAck} 设置为 `true` 时才会生效。
    * - 该方法仅对群组消息有效。发送单聊消息已读回执，详见 {@link sendMessageReadAck}；发送会话已读回执，详见 {@link sendConversationReadAck}。
    *
    * @param msgId 消息 ID。
@@ -584,7 +584,7 @@ export class ChatManager extends BaseManager {
    *
    * - 该方法仅适用于单聊会话。
    *
-   * - 该方法通知服务器将此会话未读数设置为 `0`，消息发送方（包含多端多设备）将会收到 {@link ChatMessageEventListener#onConversationRead(String, String)} 回调。
+   * - 该方法通知服务器将此会话未读数设置为 `0`，消息发送方（包含多端多设备）将会收到 {@link ChatMessageEventListener.onConversationRead} 回调。
    *
    * @param convId 会话 ID。
    *
@@ -838,7 +838,7 @@ export class ChatManager extends BaseManager {
    * @param params -
    * - options: 查询历史消息的参数配置类。详见 {@link ChatFetchMessageOptions}.
    * - cursor: 查询的起始游标位置。
-   * - pageSize: 每页期望获取的消息条数。取值范围为 [1,50]。
+   * - pageSize: 每页期望获取的消息条数。取值范围为 [1,400]。
    *
    * @returns 消息列表（不包含查询起始 ID 的消息）和下次查询的 cursor。
    *
@@ -886,8 +886,8 @@ export class ChatManager extends BaseManager {
    * @param maxCount 每次获取的最大消息数。取值范围为 [1,400]。
    * @param from 单聊或群聊中的消息发送方的用户 ID。若设置为 `null` 或空字符串，SDK 将在整个会话中搜索消息。
    * @param direction 消息搜索方向。详见  {@link ChatSearchDirection}.
-   *                  - (Default) `ChatSearchDirection.Up`: 按照消息中的时间戳的逆序查询
-   *                  - `ChatSearchDirection.Down`: 按照消息中的时间戳的正序查询。
+   *                  - (Default) `ChatSearchDirection.UP`: 按照消息中的时间戳的逆序查询
+   *                  - `ChatSearchDirection.DOWN`: 按照消息中的时间戳的正序查询。
    * @returns 消息列表（不包含查询起始时间戳对应的消息）。若未查找到任何消息，返回空列表。
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
@@ -1407,8 +1407,8 @@ export class ChatManager extends BaseManager {
    * @param convType 会话类型，详见 {@link ChatConversationType}。
    * @param msgType 消息类型。详见 {@link ChatMessageType}。
    * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的顺序加载。
+   * - （默认）`ChatSearchDirection.UP`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
+   * - `ChatSearchDirection.DOWN`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
    * @param timestamp 搜索的起始时间戳，单位为毫秒。
    * @param count 获取的最大消息数量。
    * @param sender 消息发送方。该参数也可以在搜索群组消息或聊天室消息时使用。
@@ -1468,9 +1468,9 @@ export class ChatManager extends BaseManager {
    * @param convType 会话类型，详见 {@link ChatConversationType}。
    * @param startMsgId 开始消息 ID。若该参数设为空或 `null`，SDK 按服务器接收消息时间的倒序加载消息。
    * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的顺序加载。
-   * @param loadCount 获取的最大消息数量。取值范围为 [1,50]。
+   * - （默认）`ChatSearchDirection.UP`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
+   * - `ChatSearchDirection.DOWN`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
+   * @param loadCount 获取的最大消息数量。取值范围为 [1,400]。
    * @returns 消息列表。若未获取到消息，返回空列表。
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    */
@@ -1516,10 +1516,10 @@ export class ChatManager extends BaseManager {
    * @param convType 会话类型，详见 {@link ChatConversationType}。
    * @param keywords 查询的关键字。
    * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的顺序加载。
+   * - （默认）`ChatSearchDirection.UP`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
+   * - `ChatSearchDirection.DOWN`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
    * @param timestamp 搜索的开始时间戳，单位为毫秒。
-   * @param count 获取的最大消息数量。取值范围为 [1,50]。
+   * @param count 获取的最大消息数量。取值范围为 [1,400]。
    * @param sender 消息发送者，该参数也可以在搜索群组消息和聊天室消息时使用。
    * @returns 消息列表。若未获取到消息，返回空列表。
    *
@@ -1574,9 +1574,9 @@ export class ChatManager extends BaseManager {
    * @param startTime 搜索起始时间戳，单位为毫秒。
    * @param endTime 搜索结束时间戳，单位为毫秒。
    * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的顺序加载。
-   * @param count 获取的最大消息数量。取值范围为 [1,50]。
+   * - （默认）`ChatSearchDirection.UP`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
+   * - `ChatSearchDirection.DOWN`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
+   * @param count 获取的最大消息数量。取值范围为 [1,400]。
    * @returns 消息列表。若未获取到消息，返回空列表。
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
@@ -1939,7 +1939,7 @@ export class ChatManager extends BaseManager {
    *
    * 多端多设备登录时，注意以下几点：
    *
-   * - 设备会收到 {@link ChatMultiDeviceEventListener#onThreadEvent} 回调。
+   * - 设备会收到 {@link ChatMultiDeviceEventListener.onThreadEvent} 回调。
    *
    * - 可通过设置 {@link ChatMultiDeviceEventListener} 监听相关事件。
    *
@@ -1968,7 +1968,7 @@ export class ChatManager extends BaseManager {
    *
    * 多设备登录情况下，注意以下几点：
    *
-   * - 各设备会收到 {@link ChatMultiDeviceEventListener#onThreadEvent} 回调。
+   * - 各设备会收到 {@link ChatMultiDeviceEventListener.onThreadEvent} 回调。
    *
    * - 你可通过设置 {@link ChatMultiDeviceEventListener} 监听相关事件。
    *
@@ -1993,10 +1993,10 @@ export class ChatManager extends BaseManager {
    *
    * **注意**
    *
-   * - 单设备登录时，子区所属群组的所有成员均会收到 {@link ChatMessageEventListener#onChatMessageThreadDestroyed} 回调。
+   * - 单设备登录时，子区所属群组的所有成员均会收到 {@link ChatMessageEventListener.onChatMessageThreadDestroyed} 回调。
    *   你可通过设置 {@link ChatMessageEventListener} 监听子区事件。
    *
-   * - 多端多设备登录时，设备会收到 {@link ChatMultiDeviceEventListener#onThreadEvent} 回调。
+   * - 多端多设备登录时，设备会收到 {@link ChatMultiDeviceEventListener.onThreadEvent} 回调。
    *   你可通过设置 {@link ChatMultiDeviceEventListener} 监听子区事件。
    *
    * @param chatThreadId 子区 ID。
@@ -2018,7 +2018,7 @@ export class ChatManager extends BaseManager {
    *
    * 只有子区所属群主、群管理员及子区创建者可调用该方法。
    *
-   * 子区所属群组的成员会收到 {@link ChatMessageEventListener#onChatMessageThreadUpdated} 回调。
+   * 子区所属群组的成员会收到 {@link ChatMessageEventListener.onChatMessageThreadUpdated} 回调。
    *
    * 你可通过设置 {@link ChatMessageEventListener} 监听子区事件。
    *
@@ -2050,7 +2050,7 @@ export class ChatManager extends BaseManager {
    *
    * 只有子区所属群主、群管理员及子区创建者可调用该方法。
    *
-   * 被移出的成员会收到 {@link ChatMessageEventListener#onChatMessageThreadUserRemoved} 回调。
+   * 被移出的成员会收到 {@link ChatMessageEventListener.onChatMessageThreadUserRemoved} 回调。
    *
    * 你可通过设置 {@link ChatMessageEventListener} 监听子区事件。
    *
@@ -2084,7 +2084,7 @@ export class ChatManager extends BaseManager {
    *
    * @param chatThreadId 子区 ID。
    * @param cursor 开始获取数据的游标位置，首次调用方法时传 `null` 或空字符串，按成员加入子区时间的正序获取数据。
-   * @param pageSize 每页期望返回的成员数。取值范围为 [1,50]。
+   * @param pageSize 每页期望返回的成员数。取值范围为 [1,400]。
    * @returns 若调用成功，返回子区成员列表；失败则抛出异常。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
@@ -2115,7 +2115,7 @@ export class ChatManager extends BaseManager {
    * 分页从服务器获取当前用户加入的子区列表。
    *
    * @param cursor 开始获取数据的游标位置。首次调用方法时传 `null` 或空字符串，按用户加入子区时间的倒序获取数据。
-   * @param pageSize 每页期望返回的子区数。取值范围为 [1,50]。
+   * @param pageSize 每页期望返回的子区数。取值范围为 [1,400]。
    * @returns 若调用成功，返回子区列表；失败则抛出异常。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
@@ -2153,7 +2153,7 @@ export class ChatManager extends BaseManager {
    *
    * @param parentId 父 ID，即群组 ID。
    * @param cursor 开始取数据的游标位置。首次调用方法时传 `null` 或空字符串，按用户加入子区时间的倒序获取数据。
-   * @param pageSize 每页期望返回的子区数。取值范围为 [1,50]。
+   * @param pageSize 每页期望返回的子区数。取值范围为 [1,400]。
    * @returns 若调用成功，返回子区列表；失败则抛出异常。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
@@ -2197,7 +2197,7 @@ export class ChatManager extends BaseManager {
    *
    * @param parentId 父 ID，即群组 ID。
    * @param cursor 开始取数据的游标位置。首次获取数据时传 `null` 或空字符串，按子区创建时间的倒序获取数据。
-   * @param pageSize 每页期望返回的子区数。取值范围为 [1,50]。
+   * @param pageSize 每页期望返回的子区数。取值范围为 [1,400]。
    * @returns 若调用成功，返回子区列表；失败则抛出异常。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.

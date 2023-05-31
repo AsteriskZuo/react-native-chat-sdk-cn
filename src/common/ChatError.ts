@@ -6,8 +6,8 @@ export class ChatError {
    * 错误码。
    *
    * 详见原生代码平台 iOS 和 Android 错误码：
-   * - iOS：{@link EMErrorCode#https://docs-im.easemob.com/ccim/ios/errorcode}
-   * - Android: {@link HyphenateException#errorCode#https://docs-im.easemob.com/ccim/android/errorcode}
+   * - iOS：{@link http://docs-im-beta.easemob.com/document/ios/error.html}
+   * - Android: {@link http://docs-im-beta.easemob.com/document/android/error.html}
    */
   code: number;
   /**

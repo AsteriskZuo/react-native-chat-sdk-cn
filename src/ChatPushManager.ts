@@ -71,7 +71,7 @@ export class ChatPushManager extends Native {
   /**
    * 清除指定会话的消息推送设置。
    *
-   * 清除消息推送设置后，该会话采用 app 的消息推送模式，详见 {@link EMPushManager#setSilentModeForAll(ChatSilentModeParam)}。
+   * 清除消息推送设置后，该会话采用 app 的消息推送模式，详见 {@link EMPushManager.setSilentModeForAll(ChatSilentModeParam)}。
    *
    * @param params -
    * - convId: 会话 ID。

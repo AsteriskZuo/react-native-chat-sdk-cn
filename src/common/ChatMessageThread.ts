@@ -1,7 +1,7 @@
 import { ChatMessage } from './ChatMessage';
 
 /**
- * 消息thread类。
+ * 消息子区类。
  */
 export class ChatMessageThread {
   /**

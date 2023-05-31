@@ -124,15 +124,15 @@ export enum ChatMessageType {
  */
 export enum ChatRoomMessagePriority {
   /**
-   * 高优先级
+   * 高
    */
   PriorityHigh = 0,
   /**
-   * 普通优先级。默认值
+   * 普通。默认优先级为 `普通`。
    */
   PriorityNormal,
   /**
-   * 低优先级。
+   * 低。
    */
   PriorityLow,
 }
@@ -371,7 +371,7 @@ export class ChatMessage {
    */
   hasRead: boolean = false;
   /**
-   * 会话类型，包括单聊，群聊和聊天室。
+   * 会话类型，包括单聊，群聊和聊天室。详见 {@link ChatType}。
    */
   chatType: ChatMessageChatType = ChatMessageChatType.ChatRoom;
   /**
@@ -387,14 +387,14 @@ export class ChatMessage {
    */
   attributes: Object = {};
   /**
-   * 消息体实例，详见 {@link ChatMessageBody)}。
+   * 消息体实例，详见 {@link ChatMessageBody}。
    */
   body: ChatMessageBody;
 
   /**
    * 消息是否为子区消息：
    * 
-   * - `true`：是。你需将消息接收方的用户 ID 设置为子区 ID。详见 {@link #to}。
+   * - `true`：是。你需将消息接收方的用户 ID 设置为子区 ID。详见 {@link to}。
    * - `false`：否。
    *
    * **注意**
@@ -412,15 +412,15 @@ export class ChatMessage {
   isOnline: boolean;
 
   /**
-   * The delivery priorities of chat room messages.
-   * **Note** Only for chat rooms.
+   * 聊天室消息的优先级。
+   * **Note** 该属性仅适用于聊天室会话。
    */
   private priority?: ChatRoomMessagePriority;
 
   /**
-   * 消息是否值在线投递
-   * - `true`：只投递在线用户。
-   * - (Default) `false`：投递所有用户。
+   * 消息是否只投递给在线用户：
+   * - `true`：只有消息接收方在线时才能投递成功。若接收方离线，则消息会被丢弃。
+   * - （默认）`false`：如果用户在线，则直接投递；如果用户离线，消息会在用户上线时投递。
    */
   deliverOnlineOnly: boolean;
 
@@ -537,7 +537,12 @@ export class ChatMessage {
    * - 群聊时是群组 ID。
    * - 聊天室则是聊天室 ID。
    * @param content 文本消息内容。
-   * @param chatType 会话类型。
+   * @param chatType 会话类型。详见 {@link ChatType}。
+   * @param opt 消息扩展参数。
+   *   @{#targetLanguageCodes} 语言代码。详见 {@link ChatTextMessageBody.targetLanguageCodes}。
+   *   @{#isChatThread} 当前消息是否为子区消息。
+   *   - `true`：是；
+   *   - （默认）`false`：否。
    * @returns 消息实例。
    */
   public static createTextMessage(
@@ -574,8 +579,12 @@ export class ChatMessage {
    * - 群聊时为群组 ID。
    * - 聊天室则为聊天室 ID。
    * @param filePath 文件路径。
-   * @param chatType 会话类型。
-   * @param opt 文件名称。
+   * @param chatType 会话类型。详见 {@link ChatType}。
+   * @param opt 消息的扩展参数。
+   *  @{#displayName} 要显示的文件名称。
+   *  @{#isChatThread} 当前消息是否为子区消息。
+   *   - `true`：是；
+   *   - （默认）`false`：否。
    * @returns 消息实例。
    */
   public static createFileMessage(
@@ -899,7 +908,7 @@ export class ChatMessage {
   }
 
   /**
-   * 设置聊天室消息投递优先级。
+   * 设置聊天室消息优先级。
    */
   public set messagePriority(p: ChatRoomMessagePriority) {
     this.priority = p;
@@ -1035,7 +1044,7 @@ export class ChatImageMessageBody extends ChatFileMessageBody {
   /**
    * 发送图片时是否发送原图。
    * - `true`: 发送原图和缩略图。
-   * - (默认） `false`: 若图片小于 100 KB，发送原图和缩略图；若图片大于等于 100 KB, 发送压缩后的图片和压缩后图片的缩略图。
+   * - (默认）`false`: 若图片小于 100 KB，发送原图和缩略图；若图片大于等于 100 KB, 发送压缩后的图片和压缩后图片的缩略图。
    */
   sendOriginalImage: boolean;
   /**
@@ -1208,9 +1217,9 @@ export class ChatCmdMessageBody extends ChatMessageBody {
    */
   action: string;
   /**
-   * 当前命令消息是否只投递在线用户。
-   * - （默认）`false`: 投递给所有用户。
-   * - `true`: 只投递给在线用户，离线用户再次上线时不会收到该命令消息。
+   * 当前命令消息是否只投递给在线用户：
+   * - （默认）`false`: 如果用户在线，则直接投递；如果用户离线，消息会在用户上线时投递。
+   * - `true`: 只有消息接收方在线时才能投递成功。若接收方离线，则消息会被丢弃。
    */
   deliverOnlineOnly: boolean;
   constructor(params: { action: string; deliverOnlineOnly?: boolean }) {

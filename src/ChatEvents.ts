@@ -284,7 +284,7 @@ export function ChatMultiDeviceEventFromNumber(
  *  ChatClient.getInstance().addConnectionListener(listener);
  *  ```
  *
- *    移除连接事件监听器：
+ *  移除连接事件监听器：
  *
  *  ```typescript
  *  ChatClient.getInstance().removeConnectionListener(listener);
@@ -653,7 +653,7 @@ export interface ChatGroupEventListener {
   /**
    * 当前用户自动同意入群邀请的回调。
    *
-   * 例如，用户 B 邀请用户 A 入群，由于用户 A 设置了群组自动接受邀请 （{@link ChatOptions#autoAcceptGroupInvitation} 设置为 `true`），所以自动入群，收到该回调。
+   * 例如，用户 B 邀请用户 A 入群，由于用户 A 设置了群组自动接受邀请 （{@link ChatOptions.autoAcceptGroupInvitation} 设置为 `true`），所以自动入群，收到该回调。
    *
    * @param params 参数组。
    * - Param [groupId]	群组 ID。

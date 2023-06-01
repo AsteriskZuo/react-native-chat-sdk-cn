@@ -69,7 +69,7 @@ export class ChatSilentModeParam {
   /**
    * 离线推送通知方式。
    */
-  remindType: ChatPushRemindType;
+  remindType?: ChatPushRemindType;
   /**
    * 离线推送免打扰时间段的开始时间。
    * - 请注意以下两点：

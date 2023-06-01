@@ -81,9 +81,9 @@ export function ChatConversationTypeToString(
  * 每类会话中包含发送和接收的消息。
  *
  * 关于会话名称，请根据会话类型获取：
- * 单聊：详见 {@link ChatUserInfoManager#fetchUserInfoById}；
- * 群聊：详见 {@link ChatGroup#getGroupWithId}；
- * 聊天室：详见 {@link ChatRoom#fetchChatRoomInfoFromServer}。
+ * 单聊：详见 {@link ChatUserInfoManager.fetchUserInfoById}；
+ * 群聊：详见 {@link ChatGroup.getGroupWithId}；
+ * 聊天室：详见 {@link ChatRoom.fetchChatRoomInfoFromServer}。
  */
 export class ChatConversation {
   /**
@@ -418,9 +418,9 @@ export class ChatConversation {
    * @param startTime 搜索起始时间戳。单位为毫秒。
    * @param endTime 搜索结束时间戳。单位为毫秒。
    * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的顺序加载。
-   * @param count 获取的最大消息数量。取值范围为 [1,50]。
+   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
+   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
+   * @param count 获取的最大消息数量。取值范围为 [1,400]。
    * @returns 消息列表。若未获取到消息，返回空列表。
    *
    * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。

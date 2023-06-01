@@ -19,9 +19,6 @@ export class ChatOptions {
    * 是否输出调试信息。
    * - `true`: SDK 会在日志里输出调试信息。
    * - （默认） `false`: SDK 不输出调试信息。
-   *
-   * **注意**
-   * 请确保在 ChatClient 初始化之后调用 {@link #init(Context, ChatOptions)} 来设置。
    */
   debugModel: boolean;
   /**

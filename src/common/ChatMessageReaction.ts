@@ -99,7 +99,7 @@ export class ChatMessageReactionEvent {
    */
   reactions: Array<ChatMessageReaction>;
   /**
-   * 变化的Reaction操作列表。
+   * Reaction 操作列表。
    */
   operations: Array<ChatReactionOperation>;
   constructor(params: {

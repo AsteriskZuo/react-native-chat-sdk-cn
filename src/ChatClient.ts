@@ -562,7 +562,7 @@ export class ChatClient extends BaseManager {
    * - SDK 接口：详见 {@link createAccount} 或 {@link getAccessToken}。
    * - 环信 console 后台：{@url https://console.easemob.com/app/applicationOverview/userManagement}。
    *
-   *  Token 过期提醒通过 {@link ChatConnectEventListener#onTokenWillExpire} 和 {@link ChatConnectEventListener#onTokenDidExpire} 通知。
+   *  Token 过期提醒通过 {@link ChatConnectEventListener.onTokenWillExpire} 和 {@link ChatConnectEventListener.onTokenDidExpire} 通知。
    *
    * @param userName    用户 ID。详见 {@link createAccount}。
    * @param pwdOrToken  密码或环信 token，详见 {@link createAccount} 或者 {@link getAccessToken}。

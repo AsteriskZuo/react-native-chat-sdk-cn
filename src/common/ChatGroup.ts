@@ -166,7 +166,7 @@ export class ChatGroupMessageAck {
 /**
  * 群组信息类，包含群组相关的信息。
  *
- * 可调用 {@link ChatGroupManager#fetchGroupInfoFromServer} 方法获取群组相关信息。
+ * 可调用 {@link ChatGroupManager.fetchGroupInfoFromServer} 方法获取群组相关信息。
  */
 export class ChatGroup {
   /**
@@ -290,8 +290,8 @@ export class ChatGroupOptions {
    *
    * 收到邀请是否自动入群取决于两个设置：创建群组时设置 {@link GroupOptions#inviteNeedConfirm} 以及通过 {@link ChatOptions#autoAcceptGroupInvitation} 确定是否自动接受加群邀请。
    *
-   * （1）如果 `inviteNeedConfirm` 设置为 `false`，在服务端直接加受邀人进群，与受邀人对 {@link ChatOptions#autoAcceptGroupInvitation} 的设置无关。
-   *  (2) 如果 `inviteNeedConfirm` 设置为 `true`，是否自动入群取决于受邀请人对 {@link ChatOptions#autoAcceptGroupInvitation} 的设置。
+   * （1）如果 `inviteNeedConfirm` 设置为 `false`，在服务端直接加受邀人进群，与受邀人对 {@link ChatOptions.autoAcceptGroupInvitation} 的设置无关。
+   *  (2) 如果 `inviteNeedConfirm` 设置为 `true`，是否自动入群取决于受邀请人对 {@link ChatOptions.autoAcceptGroupInvitation} 的设置。
    *
    * {@link ChatOptions#autoAcceptGroupInvitation} 为 SDK 级别操作，设置为 `true` 时，受邀人收到入群邀请后，SDK 在内部调用同意入群的 API，自动接受邀请入群；
    *  若设置为 `false`，即非自动同意其邀请，用户可以选择接受邀请进群，也可选择拒绝邀请。
@@ -398,7 +398,7 @@ export interface ChatGroupFileStatusCallback {
   onProgress?(groupId: string, filePath: string, progress: number): void;
 
   /**
-   * 错误回调。
+   * 共享文件上传或下载错误回调。
    *
    * @param groupId 群组 ID。
    * @param filePath 群组共享文件路径。

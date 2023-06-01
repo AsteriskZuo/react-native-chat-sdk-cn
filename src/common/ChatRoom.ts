@@ -65,7 +65,7 @@ export function ChatRoomPermissionTypeToString(
  *
  * **注意**
  *
- * 如需最新数据，需从服务器获取：{@link ChatRoomManager#fetchChatRoomInfoFromServer(String)}。
+ * 如需最新数据，需从服务器获取：{@link ChatRoomManager.fetchChatRoomInfoFromServer(String)}。
  */
 export class ChatRoom {
   /**

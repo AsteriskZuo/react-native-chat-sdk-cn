@@ -462,7 +462,7 @@ export class ChatGroupManager extends BaseManager {
    *
    * @param groupId 群组 ID。
    * @param isFetchMembers 是否获取群组成员信息：
-   *                       - `true`：是；该方法最多可获取 200 个成员的信息。如需获取所有群组成员的信息，可调用 {@link #fetchMemberListFromServer}。
+   *                       - `true`：是；该方法最多可获取 200 个成员的信息。如需获取所有群组成员的信息，可调用 {@link fetchMemberListFromServer}。
    *                       - `false`：否。
    * @returns 群组实例。如果群组不存在，返回 `undefined`。
    *
@@ -1368,7 +1368,7 @@ export class ChatGroupManager extends BaseManager {
   /**
    * 申请加入群组。
    *
-   * 该方法仅适用于群组类型为 {@link ChatGroupStyle#PublicJoinNeedApproval} 的公开群组。
+   * 该方法仅适用于群组类型为 {@link ChatGroupStyle.PublicJoinNeedApproval} 的公开群组。
    *
    * @param groupId 群组 ID。
    * @param reason 申请加入的理由。

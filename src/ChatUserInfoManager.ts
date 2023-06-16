@@ -1,11 +1,11 @@
-import { ChatClient } from './ChatClient';
-import { ChatUserInfo } from './common/ChatUserInfo';
 import {
   MTfetchUserInfoById,
   MTupdateOwnUserInfo,
 } from './__internal__/Consts';
 import { Native } from './__internal__/Native';
+import { ChatClient } from './ChatClient';
 import { chatlog } from './common/ChatConst';
+import { ChatUserInfo } from './common/ChatUserInfo';
 
 /**
  * 用户信息管理类，负责更新及获取用户属性。

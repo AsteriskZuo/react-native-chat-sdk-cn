@@ -1,9 +1,9 @@
 import { generateMessageId, getNowTimestamp } from '../__internal__/Utils';
 import { ChatClient } from '../ChatClient';
+import type { ChatSearchDirection } from './ChatConversation';
 import { ChatError } from './ChatError';
 import type { ChatMessageReaction } from './ChatMessageReaction';
 import type { ChatMessageThread } from './ChatMessageThread';
-import type { ChatSearchDirection } from './ChatConversation';
 
 /**
  * 会话类型枚举。
@@ -199,7 +199,7 @@ export function ChatMessageStatusFromNumber(params: number): ChatMessageStatus {
  * @returns 字符串类型的消息状态。
  */
 export function ChatMessageStatusToString(params: ChatMessageStatus): string {
-  return ChatMessageStatus[params];
+  return ChatMessageStatus[params]!;
 }
 
 /**
@@ -230,7 +230,7 @@ export function ChatDownloadStatusFromNumber(
  * @returns 枚举类型的消息附件下载状态。
  */
 export function ChatDownloadStatusToString(params: ChatDownloadStatus): string {
-  return ChatDownloadStatus[params];
+  return ChatDownloadStatus[params]!;
 }
 
 /**

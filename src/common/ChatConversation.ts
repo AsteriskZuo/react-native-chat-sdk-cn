@@ -72,7 +72,7 @@ export function ChatConversationTypeFromNumber(
 export function ChatConversationTypeToString(
   params: ChatConversationType
 ): string {
-  return ChatConversationType[params];
+  return ChatConversationType[params]!;
 }
 
 /**

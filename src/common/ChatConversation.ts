@@ -109,16 +109,29 @@ export class ChatConversation {
    * 会话扩展信息。
    */
   ext?: any;
+  /**
+   * 是否置顶。
+   */
+  isPinned?: boolean;
+  /**
+   * 置顶时间戳。
+   */
+  pinnedTime?: number;
+
   constructor(params: {
     convId: string;
     convType: ChatConversationType;
     isChatThread?: boolean;
     ext?: any;
+    isPinned?: boolean;
+    pinnedTime?: number;
   }) {
     this.convId = params.convId;
     this.convType = params.convType;
     this.isChatThread = params.isChatThread ?? false;
     this.ext = params.ext;
+    this.isPinned = params.isPinned ?? false;
+    this.pinnedTime = params.pinnedTime ?? 0;
   }
 
   /**
@@ -290,7 +303,7 @@ export class ChatConversation {
   /**
    * Deletes messages sent or received in a certain period from the local database.
    *
-   * @param params -
+   * @params 参数组。
    * - startTs: The starting UNIX timestamp for message deletion. The unit is millisecond.
    * - endTs: The end UNIX timestamp for message deletion. The unit is millisecond.
    *
@@ -315,7 +328,7 @@ export class ChatConversation {
    * @throws A description of the exception. See {@link ChatError}.
    */
   public async deleteAllMessages(): Promise<void> {
-    return ChatClient.getInstance().chatManager.deleteAllMessages(
+    return ChatClient.getInstance().chatManager.deleteConversationAllMessages(
       this.convId,
       this.convType
     );
@@ -467,7 +480,7 @@ export class ChatConversation {
   /**
    * 根据消息拉取参数配置从服务器分页获取指定会话的历史消息。
    *
-   * @param params -
+   * @params 参数组。
    * - options: 查询历史消息的参数配置类， 详见 {@link ChatFetchMessageOptions}.
    * - cursor: 查询的起始游标位置。
    * - pageSize: 每页期望获取的消息条数。取值范围为 [1,50]。
@@ -485,6 +498,40 @@ export class ChatConversation {
       this.convId,
       this.convType,
       params
+    );
+  }
+
+  /**
+   * 根据消息 ID 单向删除漫游消息
+   *
+   * @param msgIds 将要删除的消息ID列表。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async removeMessagesFromServerWithMsgIds(
+    msgIds: string[]
+  ): Promise<void> {
+    return ChatClient.getInstance().chatManager.removeMessagesFromServerWithMsgIds(
+      this.convId,
+      this.convType,
+      msgIds
+    );
+  }
+
+  /**
+   * 根据消息 时间戳 单向删除漫游消息
+   *
+   * @param timestamp UNIX 时间戳，单位为毫秒。若消息的 UNIX 时间戳小于设置的值，则会被删除。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async removeMessagesFromServerWithTimestamp(
+    timestamp: number
+  ): Promise<void> {
+    return ChatClient.getInstance().chatManager.removeMessagesFromServerWithTimestamp(
+      this.convId,
+      this.convType,
+      timestamp
     );
   }
 }

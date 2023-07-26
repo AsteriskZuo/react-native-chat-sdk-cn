@@ -135,11 +135,30 @@ export class ChatOptions {
    */
   imPort: number;
   /**
-   * The area code.
-   * This attribute is used to restrict the scope of accessible edge nodes. The default value is `GLOB`. See {@link ChatAreaCode}.
-   * This attribute can be set only when you call {@link ChatClient.init}. The attribute setting cannot be changed during the app runtime.
+   * 区域码。
+   * 边缘节点计算会使用。
    */
   areaCode: ChatAreaCode;
+
+  /**
+   * 是否包含空会话（没有消息的会话）
+   */
+  enableEmptyConversation: boolean;
+
+  /**
+   * 自定义设备名字。
+   *
+   * `customOSType` 设置为 -1，则该属性不生效。
+   *
+   * 典型应用：用户需要iphone手机和ipad设备同时在线。
+   *
+   */
+  customDeviceName?: string;
+
+  /**
+   * 自定义设备类型。
+   */
+  customOSType?: number;
 
   constructor(params: {
     appKey: string;
@@ -160,6 +179,9 @@ export class ChatOptions {
     areaCode?: ChatAreaCode;
     logTag?: string;
     logTimestamp?: boolean;
+    enableEmptyConversation?: boolean;
+    customDeviceName?: string;
+    customOSType?: number;
   }) {
     this.appKey = params.appKey;
     this.autoLogin = params.autoLogin ?? true;
@@ -186,5 +208,8 @@ export class ChatOptions {
     this.areaCode = params.areaCode ?? ChatAreaCode.GLOB;
     this.logTag = params.logTag;
     this.logTimestamp = params.logTimestamp;
+    this.enableEmptyConversation = params.enableEmptyConversation ?? false;
+    this.customDeviceName = params.customDeviceName;
+    this.customOSType = params.customOSType;
   }
 }

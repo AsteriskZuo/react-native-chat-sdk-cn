@@ -360,6 +360,8 @@ export class ChatGroupManager extends BaseManager {
       [MTgetJoinedGroupsFromServer]: {
         pageSize,
         pageNum,
+        needRole: true,
+        needMemberCount: true,
       },
     });
     ChatGroupManager.checkErrorFromResult(r);
@@ -1406,17 +1408,17 @@ export class ChatGroupManager extends BaseManager {
    */
   public async acceptJoinApplication(
     groupId: string,
-    username: string
+    userId: string
   ): Promise<void> {
     chatlog.log(
       `${ChatGroupManager.TAG}: acceptJoinApplication: `,
       groupId,
-      username
+      userId
     );
     let r: any = await Native._callMethod(MTacceptJoinApplication, {
       [MTacceptJoinApplication]: {
         groupId,
-        username,
+        username: userId,
       },
     });
     ChatGroupManager.checkErrorFromResult(r);
@@ -1613,7 +1615,7 @@ export class ChatGroupManager extends BaseManager {
    *
    * @param listener 要添加的群组监听器。
    */
-  addGroupListener(listener: ChatGroupEventListener): void {
+  public addGroupListener(listener: ChatGroupEventListener): void {
     chatlog.log(`${ChatGroupManager.TAG}: addGroupListener: `);
     this._groupListeners.add(listener);
   }
@@ -1623,7 +1625,7 @@ export class ChatGroupManager extends BaseManager {
    *
    * @param listener 要移除的群组监听器。
    */
-  removeGroupListener(listener: ChatGroupEventListener): void {
+  public removeGroupListener(listener: ChatGroupEventListener): void {
     chatlog.log(`${ChatGroupManager.TAG}: removeGroupListener: `);
     this._groupListeners.delete(listener);
   }
@@ -1631,7 +1633,7 @@ export class ChatGroupManager extends BaseManager {
   /**
    * 清除群组监听器。
    */
-  removeAllGroupListener(): void {
+  public removeAllGroupListener(): void {
     chatlog.log(`${ChatGroupManager.TAG}: removeAllGroupListener: `);
     this._groupListeners.clear();
   }

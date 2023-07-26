@@ -57,7 +57,7 @@ export class ChatPresenceManager extends Native {
    *
    * @param listener 要添加的在线状态监听器。
    */
-  addPresenceListener(listener: ChatPresenceEventListener): void {
+  public addPresenceListener(listener: ChatPresenceEventListener): void {
     this._presenceListeners.add(listener);
   }
 
@@ -66,14 +66,14 @@ export class ChatPresenceManager extends Native {
    *
    * @param listener 要移除的在线状态监听器。
    */
-  removePresenceListener(listener: ChatPresenceEventListener): void {
+  public removePresenceListener(listener: ChatPresenceEventListener): void {
     this._presenceListeners.delete(listener);
   }
 
   /**
    * 清除所有在线状态监听器。
    */
-  removeAllPresenceListener(): void {
+  public removeAllPresenceListener(): void {
     this._presenceListeners.clear();
   }
 

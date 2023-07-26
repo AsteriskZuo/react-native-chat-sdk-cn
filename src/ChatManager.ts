@@ -5,7 +5,6 @@ import {
   MTackConversationRead,
   MTackGroupMessageRead,
   MTackMessageRead,
-  // MTsyncConversationName,
   MTaddReaction,
   MTasyncFetchGroupAcks,
   MTclearAllMessages,
@@ -15,6 +14,7 @@ import {
   MTdeleteMessagesWithTs,
   MTdeleteRemoteConversation,
   MTdestroyChatThread,
+  MTdownloadAndParseCombineMessage,
   MTdownloadAttachment,
   MTdownloadThumbnail,
   MTfetchChatThreadDetail,
@@ -31,10 +31,12 @@ import {
   MTfetchSupportLanguages,
   MTgetConversation,
   MTgetConversationsFromServer,
+  MTgetConversationsFromServerWithCursor,
   MTgetLatestMessage,
   MTgetLatestMessageFromOthers,
   MTgetMessage,
   MTgetMessageThread,
+  MTgetPinnedConversationsFromServerWithCursor,
   MTgetReactionList,
   MTgetThreadConversation,
   MTgetUnreadMessageCount,
@@ -53,6 +55,7 @@ import {
   MTmarkAllMessagesAsRead,
   MTmarkMessageAsRead,
   MTmessageReactionDidChange,
+  MTmodifyMessage,
   MTonChatThreadCreated,
   MTonChatThreadDestroyed,
   MTonChatThreadUpdated,
@@ -61,11 +64,13 @@ import {
   MTonConversationHasRead,
   MTonConversationUpdate,
   MTonGroupMessageRead,
+  MTonMessageContentChanged,
   MTonMessagesDelivered,
   MTonMessagesRead,
   MTonMessagesRecalled,
   MTonMessagesReceived,
   MTonReadAckForGroupMessageUpdated,
+  MTpinConversation,
   MTrecallMessage,
   MTremoveMemberFromChatThread,
   MTremoveMessage,
@@ -96,6 +101,7 @@ import { ChatGroupMessageAck } from './common/ChatGroup';
 import {
   ChatFetchMessageOptions,
   ChatMessage,
+  ChatMessageBody,
   ChatMessageChatType,
   ChatMessageStatus,
   ChatMessageStatusCallback,
@@ -222,6 +228,11 @@ export class ChatManager extends BaseManager {
     event.addListener(
       MTonChatThreadUserRemoved,
       this.onChatMessageThreadUserRemoved.bind(this)
+    );
+    event.removeAllListeners(MTonMessageContentChanged);
+    event.addListener(
+      MTonMessageContentChanged,
+      this.onMessageContentChanged.bind(this)
     );
   }
 
@@ -372,6 +383,17 @@ export class ChatManager extends BaseManager {
     this._messageListeners.forEach((listener: ChatMessageEventListener) => {
       listener.onChatMessageThreadUserRemoved?.(
         new ChatMessageThreadEvent(params)
+      );
+    });
+  }
+
+  private onMessageContentChanged(params: any): void {
+    chatlog.log(`${ChatManager.TAG}: onMessageContentChanged: `, params);
+    this._messageListeners.forEach((listener: ChatMessageEventListener) => {
+      listener.onMessageContentChanged?.(
+        ChatMessage.createReceiveMessage(params.message),
+        params.lastModifyOperatorId,
+        params.lastModifyTime
       );
     });
   }
@@ -1367,11 +1389,15 @@ export class ChatManager extends BaseManager {
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    */
-  public async deleteAllMessages(
+  public async deleteConversationAllMessages(
     convId: string,
     convType: ChatConversationType
   ): Promise<void> {
-    chatlog.log(`${ChatManager.TAG}: deleteAllMessages: `, convId, convType);
+    chatlog.log(
+      `${ChatManager.TAG}: deleteConversationAllMessages: `,
+      convId,
+      convType
+    );
     let r: any = await Native._callMethod(MTclearAllMessages, {
       [MTclearAllMessages]: {
         convId: convId,
@@ -1679,7 +1705,7 @@ export class ChatManager extends BaseManager {
     convId: string,
     convType: ChatConversationType,
     ext: {
-      [key: string]: string | number;
+      [key: string]: string | number | boolean;
     }
   ): Promise<void> {
     chatlog.log(
@@ -2451,5 +2477,185 @@ export class ChatManager extends BaseManager {
       },
     });
     Native.checkErrorFromResult(r);
+  }
+
+  /**
+   * 分页获取会话列表
+   *
+   * 按照会话最后一条消息时间戳逆序排序，如果会话没有最后一条消息，按照创建会话消息逆序排序。
+   *
+   * @param cursor: 查询数据起始位置。如果为 空字符串 或者 `undefined` 从默认位置开始查询。
+   * @param pageSize: 请求最大会话数量。范围 [1，50]。
+   *
+   * @returns 会话列表。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async fetchConversationsFromServerWithCursor(
+    cursor?: string,
+    pageSize?: number
+  ): Promise<ChatCursorResult<ChatConversation>> {
+    chatlog.log(
+      `${ChatManager.TAG}: fetchConversationsFromServerWithCursor: ${cursor}, ${pageSize}`
+    );
+    let r: any = await Native._callMethod(
+      MTgetConversationsFromServerWithCursor,
+      {
+        [MTgetConversationsFromServerWithCursor]: {
+          cursor: cursor ?? '',
+          pageSize: pageSize ?? 20,
+        },
+      }
+    );
+    Native.checkErrorFromResult(r);
+    let ret = new ChatCursorResult<ChatConversation>({
+      cursor: r?.[MTgetConversationsFromServerWithCursor].cursor,
+      list: r?.[MTgetConversationsFromServerWithCursor].list,
+      opt: {
+        map: (param: any) => {
+          return new ChatConversation(param);
+        },
+      },
+    });
+    return ret;
+  }
+
+  /**
+   * 分页获取置顶会话列表
+   *
+   * 按照会话最后一条消息时间戳逆序排序，如果会话没有最后一条消息，按照创建会话消息逆序排序。
+   *
+   * @param cursor: 查询数据起始位置。如果为 空字符串 或者 `undefined` 从默认位置开始查询。
+   * @param pageSize: 请求最大会话数量。范围 [1，50]。
+   *
+   * @returns 会话列表。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async fetchPinnedConversationsFromServerWithCursor(
+    cursor?: string,
+    pageSize?: number
+  ): Promise<ChatCursorResult<ChatConversation>> {
+    chatlog.log(
+      `${ChatManager.TAG}: fetchPinnedConversationsFromServerWithCursor: ${cursor}, ${pageSize}`
+    );
+    let r: any = await Native._callMethod(
+      MTgetPinnedConversationsFromServerWithCursor,
+      {
+        [MTgetPinnedConversationsFromServerWithCursor]: {
+          cursor: cursor ?? '',
+          pageSize: pageSize ?? 20,
+        },
+      }
+    );
+    Native.checkErrorFromResult(r);
+    let ret = new ChatCursorResult<ChatConversation>({
+      cursor: r?.[MTgetPinnedConversationsFromServerWithCursor].cursor,
+      list: r?.[MTgetPinnedConversationsFromServerWithCursor].list,
+      opt: {
+        map: (param: any) => {
+          return new ChatConversation(param);
+        },
+      },
+    });
+    return ret;
+  }
+
+  /**
+   * 设置会话是否置顶。
+   *
+   * @param convId 会话 ID.
+   * @param isPinned 是否置顶。
+   * - `true`：Yes.
+   * - `false`: No. 
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async pinConversation(
+    convId: string,
+    isPinned: boolean
+  ): Promise<void> {
+    chatlog.log(`${ChatManager.TAG}: pinConversation: ${convId}, ${isPinned}`);
+    let r: any = await Native._callMethod(MTpinConversation, {
+      [MTpinConversation]: {
+        convId,
+        isPinned,
+      },
+    });
+    Native.checkErrorFromResult(r);
+  }
+
+  /**
+   * 修改文本消息。同时修改本地消息和服务器消息。
+   *
+   * 消息必须是文本消息。消息回话类型必须为单人或者群组。不支持聊天室。
+   *
+   * @param msgId 修改消息 ID。
+   * @param body 文本消息body。详见 {@link ChatTextMessageBody}.
+   *
+   * @returns 修改后的消息。 详见 {@link ChatMessageBody}.
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async modifyMessageBody(
+    msgId: string,
+    body: ChatMessageBody
+  ): Promise<ChatMessage> {
+    chatlog.log(
+      `${ChatManager.TAG}: modifyMessageBody: ${msgId}, ${body.type}`
+    );
+    if (body.type !== ChatMessageType.TXT) {
+      throw new ChatError({
+        code: 1,
+        description:
+          'Currently only text message content modification is supported.',
+      });
+    }
+    let r: any = await Native._callMethod(MTmodifyMessage, {
+      [MTmodifyMessage]: {
+        msgId,
+        body,
+      },
+    });
+    Native.checkErrorFromResult(r);
+    const rr = r?.[MTmodifyMessage];
+    return new ChatMessage(rr);
+  }
+
+  /**
+   * 获取合并类型消息的消息列表。 合并消息包含1条或者多条其它类型消息。
+   *
+   * @param message 合并类型的消息。
+   *
+   * @returns 消息body里面的消息列表。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async fetchCombineMessageDetail(
+    message: ChatMessage
+  ): Promise<Array<ChatMessage>> {
+    chatlog.log(
+      `${ChatManager.TAG}: fetchCombineMessageDetail: ${message.body.type}`
+    );
+    if (message.body.type !== ChatMessageType.COMBINE) {
+      throw new ChatError({
+        code: 1,
+        description: 'Please select a combine type message.',
+      });
+    }
+    let r: any = await Native._callMethod(MTdownloadAndParseCombineMessage, {
+      [MTdownloadAndParseCombineMessage]: {
+        message,
+      },
+    });
+    Native.checkErrorFromResult(r);
+    const ret: ChatMessage[] = [];
+    const rr = r?.[MTdownloadAndParseCombineMessage];
+    if (rr) {
+      Object.entries(rr).forEach((value: [string, any]) => {
+        ret.push(new ChatMessage(value[1]));
+      });
+    }
+    return ret;
   }
 }

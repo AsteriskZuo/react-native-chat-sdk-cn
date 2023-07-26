@@ -6,9 +6,11 @@ import {
   MTfetchSilentModeForAll,
   MTfetchSilentModeForConversations,
   MTgetImPushConfigFromServer,
+  MTgetPushTemplate,
   MTremoveConversationSilentMode,
   MTsetConversationSilentMode,
   MTsetPreferredNotificationLanguage,
+  MTsetPushTemplate,
   MTsetSilentModeForAll,
   MTupdateImPushStyle,
   MTupdatePushNickname,
@@ -74,7 +76,7 @@ export class ChatPushManager extends Native {
    *
    * 清除消息推送设置后，该会话采用 app 的消息推送模式，详见 {@link EMPushManager.setSilentModeForAll(ChatSilentModeParam)}。
    *
-   * @param params -
+   * @params 参数组。
    * - convId: 会话 ID。
    * - convType: 会话类型。
    *
@@ -101,7 +103,7 @@ export class ChatPushManager extends Native {
   /**
    * 获取指定会话的离线推送设置。
    *
-   * @param params -
+   * @params 参数组。
    * - convId: 会话 ID。
    * - convType: 会话类型。
    *
@@ -278,6 +280,8 @@ export class ChatPushManager extends Native {
    * 从服务器获取推送配置。
    *
    * @returns 推送选项。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchPushOptionFromServer(): Promise<ChatPushOption> {
     chatlog.log(
@@ -286,5 +290,38 @@ export class ChatPushManager extends Native {
     let r: any = await Native._callMethod(MTgetImPushConfigFromServer);
     ChatPushManager.checkErrorFromResult(r);
     return new ChatPushOption(r?.[MTgetImPushConfigFromServer]);
+  }
+
+  /**
+   * 选择离线推送模板，通知服务器。
+   *
+   * 推送模板可以使用 rest API 或 控制台 添加。
+   *
+   * @param templateName 推送模板名字。 如果名字在控制台不存在，虽然该方法不会返回错误，但是不会生效。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async selectPushTemplate(templateName: string): Promise<void> {
+    chatlog.log(`${ChatPushManager.TAG}: ${this.selectPushTemplate.name}`);
+    let r: any = await Native._callMethod(MTsetPushTemplate, {
+      [MTsetPushTemplate]: { templateName },
+    });
+    ChatPushManager.checkErrorFromResult(r);
+  }
+
+  /**
+   * 获取当前模板的名字。
+   *
+   * @returns 模板名字。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async fetchSelectedPushTemplate(): Promise<string | undefined> {
+    chatlog.log(
+      `${ChatPushManager.TAG}: ${this.fetchSelectedPushTemplate.name}`
+    );
+    let r: any = await Native._callMethod(MTgetPushTemplate);
+    ChatPushManager.checkErrorFromResult(r);
+    return r?.[MTgetPushTemplate].templateName as string | undefined;
   }
 }

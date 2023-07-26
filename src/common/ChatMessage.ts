@@ -117,6 +117,10 @@ export enum ChatMessageType {
    * 自定义消息。
    */
   CUSTOM = 'custom',
+  /**
+   * 合并消息。
+   */
+  COMBINE = 'combine',
 }
 
 /**
@@ -257,6 +261,8 @@ export function ChatMessageTypeFromString(params: string): ChatMessageType {
       return ChatMessageType.VIDEO;
     case 'voice':
       return ChatMessageType.VOICE;
+    case 'combine':
+      return ChatMessageType.COMBINE;
     default:
       throw new ChatError({
         code: 1,
@@ -425,7 +431,14 @@ export class ChatMessage {
   deliverOnlineOnly: boolean;
 
   /**
-   * 构造消息对象。
+   * 指定消息接收对象列表。 默认为 `undefined`
+   *
+   * 该属性只在群组或者聊天室中使用。
+   */
+  receiverList?: string[];
+
+  /**
+   * 构造消息。
    */
   public constructor(params: {
     msgId?: string;
@@ -448,6 +461,7 @@ export class ChatMessage {
     isChatThread?: boolean;
     isOnline?: boolean;
     deliverOnlineOnly?: boolean;
+    receiverList?: string[];
   }) {
     this.msgId = params.msgId ?? generateMessageId();
     this.conversationId = params.conversationId ?? '';
@@ -469,6 +483,7 @@ export class ChatMessage {
     this.isChatThread = params.isChatThread ?? false;
     this.isOnline = params.isOnline ?? true;
     this.deliverOnlineOnly = params.deliverOnlineOnly ?? false;
+    this.receiverList = params.receiverList;
   }
 
   private static getBody(params: any): ChatMessageBody {
@@ -497,6 +512,9 @@ export class ChatMessage {
 
       case ChatMessageType.VOICE:
         return new ChatVoiceMessageBody(params);
+
+      case ChatMessageType.COMBINE:
+        return new ChatCombineMessageBody(params);
 
       default:
         throw new ChatError({
@@ -556,10 +574,8 @@ export class ChatMessage {
       deliverOnlineOnly?: boolean;
     }
   ): ChatMessage {
-    let s = ChatMessageType.TXT.valueOf();
     return ChatMessage.createSendMessage({
       body: new ChatTextMessageBody({
-        type: s,
         content: content,
         targetLanguageCodes: opt?.targetLanguageCodes,
       }),
@@ -597,14 +613,15 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      secret?: string;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
       body: new ChatFileMessageBody({
-        type: ChatMessageType.FILE.valueOf(),
         localPath: filePath,
         displayName: opt?.displayName ?? '',
         fileSize: opt?.fileSize,
+        secret: opt?.secret,
       }),
       targetId: targetId,
       chatType: chatType,
@@ -647,11 +664,11 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      secret?: string;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
       body: new ChatImageMessageBody({
-        type: ChatMessageType.IMAGE.valueOf(),
         localPath: filePath,
         displayName: opt?.displayName ?? filePath,
         thumbnailLocalPath: opt?.thumbnailLocalPath,
@@ -659,6 +676,7 @@ export class ChatMessage {
         width: opt?.width,
         height: opt?.height,
         fileSize: opt?.fileSize,
+        secret: opt?.secret,
       }),
       targetId: targetId,
       chatType: chatType,
@@ -699,11 +717,11 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      secret?: string;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
       body: new ChatVideoMessageBody({
-        type: ChatMessageType.VIDEO.valueOf(),
         localPath: filePath,
         displayName: opt?.displayName ?? '',
         thumbnailLocalPath: opt?.thumbnailLocalPath,
@@ -711,6 +729,7 @@ export class ChatMessage {
         width: opt?.width,
         height: opt?.height,
         fileSize: opt?.fileSize,
+        secret: opt?.secret,
       }),
       targetId: targetId,
       chatType: chatType,
@@ -739,21 +758,22 @@ export class ChatMessage {
     filePath: string,
     chatType: ChatMessageChatType = ChatMessageChatType.PeerChat,
     opt?: {
-      displayName: string;
+      displayName?: string;
       duration: number;
       isChatThread?: boolean;
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      secret?: string;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
       body: new ChatVoiceMessageBody({
-        type: ChatMessageType.VOICE.valueOf(),
         localPath: filePath,
         displayName: opt?.displayName ?? '',
         duration: opt?.duration,
         fileSize: opt?.fileSize,
+        secret: opt?.secret,
       }),
       targetId: targetId,
       chatType: chatType,
@@ -791,7 +811,6 @@ export class ChatMessage {
   ): ChatMessage {
     return ChatMessage.createSendMessage({
       body: new ChatLocationMessageBody({
-        type: ChatMessageType.LOCATION.valueOf(),
         latitude: latitude,
         longitude: longitude,
         address: opt?.address ?? '',
@@ -924,8 +943,33 @@ export class ChatMessageBody {
    */
   type: ChatMessageType;
 
-  constructor(type: string) {
-    this.type = ChatMessageTypeFromString(type);
+  /**
+   * 消息最后修改人。
+   */
+  lastModifyOperatorId?: string;
+
+  /**
+   * 最后修改时间戳。
+   */
+  lastModifyTime?: number;
+
+  /**
+   * 修改次数。
+   */
+  modifyCount?: number;
+
+  protected constructor(
+    type: ChatMessageType,
+    opt?: {
+      lastModifyOperatorId?: string;
+      lastModifyTime?: number;
+      modifyCount?: number;
+    }
+  ) {
+    this.type = type;
+    this.lastModifyOperatorId = opt?.lastModifyOperatorId;
+    this.lastModifyTime = opt?.lastModifyTime;
+    this.modifyCount = opt?.modifyCount;
   }
 }
 
@@ -948,12 +992,18 @@ export class ChatTextMessageBody extends ChatMessageBody {
    */
   translations?: any;
   constructor(params: {
-    type: string;
     content: string;
     targetLanguageCodes?: Array<string>;
     translations?: any;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
   }) {
-    super(params.type);
+    super(ChatMessageType.TXT, {
+      lastModifyOperatorId: params.lastModifyOperatorId,
+      lastModifyTime: params.lastModifyTime,
+      modifyCount: params.modifyCount,
+    });
     this.content = params.content;
     this.targetLanguageCodes = params.targetLanguageCodes;
     this.translations = params.translations;
@@ -977,12 +1027,18 @@ export class ChatLocationMessageBody extends ChatMessageBody {
    */
   longitude: string;
   constructor(params: {
-    type: string;
     address: string;
     latitude: string;
     longitude: string;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
   }) {
-    super(params.type);
+    super(ChatMessageType.LOCATION, {
+      lastModifyOperatorId: params.lastModifyOperatorId,
+      lastModifyTime: params.lastModifyTime,
+      modifyCount: params.modifyCount,
+    });
     this.address = params.address;
     this.latitude = params.latitude;
     this.longitude = params.longitude;
@@ -1018,29 +1074,55 @@ export class ChatFileMessageBody extends ChatMessageBody {
    */
   displayName: string;
 
-  constructor(params: {
-    type: string;
+  protected constructor(params: {
+    type: ChatMessageType;
     localPath: string;
     secret?: string;
     remotePath?: string;
     fileStatus?: number;
     fileSize?: number;
-    displayName: string;
+    displayName?: string;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
   }) {
-    super(params.type);
+    super(params.type, {
+      lastModifyOperatorId: params.lastModifyOperatorId,
+      lastModifyTime: params.lastModifyTime,
+      modifyCount: params.modifyCount,
+    });
     this.localPath = params.localPath;
     this.secret = params.secret ?? '';
     this.remotePath = params.remotePath ?? '';
     this.fileStatus = ChatDownloadStatusFromNumber(params.fileStatus ?? -1);
     this.fileSize = params.fileSize ?? 0;
-    this.displayName = params.displayName;
+    this.displayName = params.displayName ?? '';
   }
 }
 
 /**
- * 图片消息体基类。
+ * The file message body class.
  */
-export class ChatImageMessageBody extends ChatFileMessageBody {
+export class ChatFileMessageBody extends _ChatFileMessageBody {
+  constructor(params: {
+    localPath: string;
+    secret?: string;
+    remotePath?: string;
+    fileStatus?: number;
+    fileSize?: number;
+    displayName?: string;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
+  }) {
+    super({ ...params, type: ChatMessageType.FILE });
+  }
+}
+
+/**
+ * The image message body class.
+ */
+export class ChatImageMessageBody extends _ChatFileMessageBody {
   /**
    * 发送图片时是否发送原图。
    * - `true`: 发送原图和缩略图。
@@ -1072,7 +1154,6 @@ export class ChatImageMessageBody extends ChatFileMessageBody {
    */
   height: number;
   constructor(params: {
-    type: string;
     localPath: string;
     secret?: string;
     remotePath?: string;
@@ -1086,9 +1167,15 @@ export class ChatImageMessageBody extends ChatFileMessageBody {
     thumbnailStatus?: number;
     width?: number;
     height?: number;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
   }) {
     super({
-      type: params.type,
+      type: ChatMessageType.IMAGE,
+      lastModifyOperatorId: params.lastModifyOperatorId,
+      lastModifyTime: params.lastModifyTime,
+      modifyCount: params.modifyCount,
       localPath: params.localPath,
       secret: params.secret,
       remotePath: params.remotePath,
@@ -1141,7 +1228,6 @@ export class ChatVideoMessageBody extends ChatFileMessageBody {
    */
   height: number;
   constructor(params: {
-    type: string;
     localPath: string;
     secret?: string;
     remotePath?: string;
@@ -1155,9 +1241,15 @@ export class ChatVideoMessageBody extends ChatFileMessageBody {
     thumbnailStatus?: ChatDownloadStatus;
     width?: number;
     height?: number;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
   }) {
     super({
-      type: params.type,
+      type: ChatMessageType.VIDEO,
+      lastModifyOperatorId: params.lastModifyOperatorId,
+      lastModifyTime: params.lastModifyTime,
+      modifyCount: params.modifyCount,
       localPath: params.localPath,
       secret: params.secret,
       remotePath: params.remotePath,
@@ -1186,7 +1278,6 @@ export class ChatVoiceMessageBody extends ChatFileMessageBody {
    */
   duration: number;
   constructor(params: {
-    type: string;
     localPath: string;
     secret?: string;
     remotePath?: string;
@@ -1194,9 +1285,15 @@ export class ChatVoiceMessageBody extends ChatFileMessageBody {
     fileSize?: number;
     displayName: string;
     duration?: number;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
   }) {
     super({
-      type: params.type,
+      type: ChatMessageType.VOICE,
+      lastModifyOperatorId: params.lastModifyOperatorId,
+      lastModifyTime: params.lastModifyTime,
+      modifyCount: params.modifyCount,
       localPath: params.localPath,
       secret: params.secret,
       remotePath: params.remotePath,
@@ -1216,16 +1313,18 @@ export class ChatCmdMessageBody extends ChatMessageBody {
    * 命令内容。
    */
   action: string;
-  /**
-   * 当前命令消息是否只投递给在线用户：
-   * - （默认）`false`: 如果用户在线，则直接投递；如果用户离线，消息会在用户上线时投递。
-   * - `true`: 只有消息接收方在线时才能投递成功。若接收方离线，则消息会被丢弃。
-   */
-  deliverOnlineOnly: boolean;
-  constructor(params: { action: string; deliverOnlineOnly?: boolean }) {
-    super(ChatMessageType.CMD);
+  constructor(params: {
+    action: string;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
+  }) {
+    super(ChatMessageType.CMD, {
+      lastModifyOperatorId: params.lastModifyOperatorId,
+      lastModifyTime: params.lastModifyTime,
+      modifyCount: params.modifyCount,
+    });
     this.action = params.action;
-    this.deliverOnlineOnly = params.deliverOnlineOnly ?? false;
   }
 }
 
@@ -1240,11 +1339,77 @@ export class ChatCustomMessageBody extends ChatMessageBody {
   /**
    * 自定义消息的键值对。
    */
-  params: any;
-  constructor(params: { event: string; params?: any }) {
-    super(ChatMessageType.CUSTOM);
+  params?: Record<string, string>;
+  constructor(params: {
+    event: string;
+    params?: Record<string, string>;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
+  }) {
+    super(ChatMessageType.CUSTOM, {
+      lastModifyOperatorId: params.lastModifyOperatorId,
+      lastModifyTime: params.lastModifyTime,
+      modifyCount: params.modifyCount,
+    });
     this.event = params.event;
-    this.params = params.params ?? {};
+    this.params = params.params;
+  }
+}
+
+/**
+ * 合并消息体。
+ */
+export class ChatCombineMessageBody extends _ChatFileMessageBody {
+  /**
+   * 标题
+   */
+  title?: string;
+  /**
+   * 摘要
+   */
+  summary?: string;
+  /**
+   * 消息ID列表。
+   *
+   * **注意** 该属性只用在创建发送消息的场景。
+   */
+  messageIdList?: string[];
+  /**
+   * 文本。
+   */
+  compatibleText?: string;
+  constructor(params: {
+    localPath: string;
+    secret?: string;
+    remotePath?: string;
+    fileStatus?: number;
+    fileSize?: number;
+    displayName?: string;
+    title?: string;
+    summary?: string;
+    messageIdList?: string[];
+    compatibleText?: string;
+    lastModifyOperatorId?: string;
+    lastModifyTime?: number;
+    modifyCount?: number;
+  }) {
+    super({
+      type: ChatMessageType.COMBINE,
+      lastModifyOperatorId: params.lastModifyOperatorId,
+      lastModifyTime: params.lastModifyTime,
+      modifyCount: params.modifyCount,
+      localPath: params.localPath,
+      secret: params.secret,
+      remotePath: params.remotePath,
+      fileStatus: params.fileStatus,
+      fileSize: params.fileSize,
+      displayName: params.displayName,
+    });
+    this.title = params.title;
+    this.compatibleText = params.compatibleText;
+    this.messageIdList = params.messageIdList;
+    this.summary = params.summary;
   }
 }
 

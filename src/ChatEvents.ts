@@ -1,3 +1,4 @@
+import type { ChatConversationType } from './common/ChatConversation';
 import { ChatError } from './common/ChatError';
 import type { ChatGroup, ChatGroupMessageAck } from './common/ChatGroup';
 import type { ChatMessage } from './common/ChatMessage';
@@ -155,9 +156,17 @@ export enum ChatMultiDeviceEvent {
    */
   THREAD_KICK,
   /**
-   * The current user modified custom attributes of a group member on another device.
+   * 用户 A 在设备 A1 置顶会话，则设备 A2 上会收到该事件。
    */
-  GROUP_METADATA_CHANGED = 52,
+  CONVERSATION_PINNED = 60,
+  /**
+   * 用户 A 在设备 A1取消置顶会话，则设备 A2 上会收到该事件。
+   */
+  CONVERSATION_UNPINNED = 61,
+  /**
+   * 用户 A 在设备 A1 删除会话，则设备 A2 上会收到该事件。
+   */
+  CONVERSATION_DELETED = 62,
 }
 
 /**
@@ -242,8 +251,16 @@ export function ChatMultiDeviceEventFromNumber(
       return ChatMultiDeviceEvent.THREAD_UPDATE;
     case 45:
       return ChatMultiDeviceEvent.THREAD_KICK;
+
     case 52:
       return ChatMultiDeviceEvent.GROUP_METADATA_CHANGED;
+
+    case 60:
+      return ChatMultiDeviceEvent.CONVERSATION_PINNED;
+    case 61:
+      return ChatMultiDeviceEvent.CONVERSATION_UNPINNED;
+    case 62:
+      return ChatMultiDeviceEvent.CONVERSATION_DELETED;
 
     default:
       throw new ChatError({
@@ -316,9 +333,60 @@ export interface ChatConnectEventListener {
   onTokenDidExpire?(): void;
 
   /**
-   * The number of daily active users (DAU) or monthly active users (MAU) for the app has reached the upper limit.
+   * 应用程序的日活跃用户数量（DAU）或月活跃用户数量（MAU）达到上限时回调。
+   *
+   * 服务器主动断开连接。
    */
   onAppActiveNumberReachLimit?(): void;
+
+  /**
+   * 其他设备登录通知。
+   *
+   * 服务器主动断开连接。
+   */
+  onUserDidLoginFromOtherDevice?(deviceName?: string): void;
+
+  /**
+   * 用户被移除通知。
+   *
+   * 服务器主动断开连接。
+   */
+  onUserDidRemoveFromServer?(): void;
+
+  /**
+   * 被服务器禁止连接通知。
+   *
+   * 服务器主动断开连接。
+   */
+  onUserDidForbidByServer?(): void;
+
+  /**
+   * 用户密码变更通知。
+   *
+   * 服务器主动断开连接。
+   */
+  onUserDidChangePassword?(): void;
+
+  /**
+   * 登录设备数量超限通知。
+   *
+   * 服务器主动断开连接。
+   */
+  onUserDidLoginTooManyDevice?(): void;
+
+  /**
+   * 被其他设备踢掉通知。
+   *
+   * 服务器主动断开连接。
+   */
+  onUserKickedByOtherDevice?(): void;
+
+  /**
+   * 鉴权失败通知。 典型触发通知场景：token过期、token验证失败。
+   *
+   * 服务器主动断开连接
+   */
+  onUserAuthenticationFailed?(): void;
 }
 
 /**
@@ -364,6 +432,27 @@ export interface ChatMultiDeviceEventListener {
     event?: ChatMultiDeviceEvent,
     target?: string,
     usernames?: Array<string>
+  ): void;
+
+  /**
+   * 会话删除漫游消息后，其他设备收到该通知。
+   *
+   * @param convId 会话 ID.
+   * @param deviceId 设备 ID.
+   */
+  onMessageRemoved?(convId?: string, deviceId?: string): void;
+
+  /**
+   * The multi-device event callback for the operation of a single conversation.
+   *
+   * @param event The event type.
+   * @param convId The conversation ID.
+   * @param convType The conversation type.
+   */
+  onConversationEvent?(
+    event?: ChatMultiDeviceEvent,
+    convId?: string,
+    convType?: ChatConversationType
   ): void;
 }
 
@@ -436,7 +525,7 @@ export interface ChatMessageEventListener {
   /**
    * 收到命令消息回调。
    *
-   * 与 {@link #onMessageReceived(messages: Array<ChatMessage>)} 不同, 这个回调只包含命令的消息，命令消息通常不对用户展示。
+   * 与 {@link onMessagesReceived} 不同, 这个回调只包含命令的消息，命令消息通常不对用户展示。
    *
    * @param messages 收到的命令消息。
    */
@@ -528,6 +617,19 @@ export interface ChatMessageEventListener {
    * @param event 子区用户移除事件。
    */
   onChatMessageThreadUserRemoved?(event: ChatMessageThreadEvent): void;
+
+  /**
+   * 文本消息内容更改，其它设备收到该通知。
+   *
+   * @param message 更改后的消息.
+   * @param lastModifyOperatorId 修改消息的人的 ID。
+   * @param lastModifyTime 修改消息的时间戳。
+   */
+  onMessageContentChanged?(
+    message: ChatMessage,
+    lastModifyOperatorId: string,
+    lastModifyTime: number
+  ): void;
 }
 
 /**
@@ -541,7 +643,7 @@ export interface ChatGroupEventListener {
    *
    * 例如，用户 B 邀请用户 A 入群，则用户 A 会收到该回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    * - Param [inviter] 邀请人的用户 ID。
@@ -559,7 +661,7 @@ export interface ChatGroupEventListener {
    *
    * 该回调是由对端用户接收当前用户发送的群组申请触发的。如，用户 A 向用户 B 发送群组申请，用户 B 收到该回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    * - Param [applicant] 申请人的用户 ID。
@@ -576,7 +678,7 @@ export interface ChatGroupEventListener {
    *
    * 若群组类型为 `PublicJoinNeedApproval`，用户 B 接受用户 A 的群组申请后，用户 A 会收到该回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    * - Param [accepter] 接受人的用户 ID。
@@ -591,7 +693,7 @@ export interface ChatGroupEventListener {
    *
    * 该回调是由对端用户拒绝当前用户发送的群组申请触发的。例如，用户 B 拒绝用户 A 的群组申请后，用户 A 会收到该回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    * - Param [decliner] 拒绝人的用户 ID。
@@ -608,7 +710,7 @@ export interface ChatGroupEventListener {
    *
    * 例如，用户 B 同意了用户 A 的群组邀请，用户 A 会收到该回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    * - Param [invitee] 受邀人的用户 ID。
@@ -624,7 +726,7 @@ export interface ChatGroupEventListener {
    *
    * 该回调是由当前用户收到对端用户拒绝入群邀请触发的。例如，用户 B 拒绝了用户 A 的群组邀请，用户 A 会收到该回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [invitee] 受邀人的用户 ID。
    * - Param [reason] 接受理由。
@@ -637,7 +739,7 @@ export interface ChatGroupEventListener {
   /**
    * 当前用户被移出群组时的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    */
@@ -645,7 +747,7 @@ export interface ChatGroupEventListener {
   /**
    * 当前用户收到群组被解散的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    */
@@ -655,7 +757,7 @@ export interface ChatGroupEventListener {
    *
    * 例如，用户 B 邀请用户 A 入群，由于用户 A 设置了群组自动接受邀请 （{@link ChatOptions.autoAcceptGroupInvitation} 设置为 `true`），所以自动入群，收到该回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId]	群组 ID。
    * - Param [inviter]	邀请人的用户 ID。
    * - Param [inviteMessage]	邀请信息。
@@ -670,7 +772,7 @@ export interface ChatGroupEventListener {
    *
    * 用户禁言后，将无法在群中发送消息，但可查看群组中的消息，而黑名单中的用户无法查看和发送群组消息。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [mutes] 被禁言成员的用户 ID。
    * - Param [muteExpire] 预留参数。禁言时长。
@@ -683,7 +785,7 @@ export interface ChatGroupEventListener {
   /**
    * 有成员被解除禁言的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [mutes] 用户被解除禁言的列表
    */
@@ -691,7 +793,7 @@ export interface ChatGroupEventListener {
   /**
    * 成员设置为管理员的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [admin] 设置为管理员的成员的用户 ID。
    */
@@ -699,7 +801,7 @@ export interface ChatGroupEventListener {
   /**
    * 取消成员的管理员权限的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [admin] 被移除管理员的成员用户 ID。
    */
@@ -707,7 +809,7 @@ export interface ChatGroupEventListener {
   /**
    * 转移群主权限的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [newOwner] 新群主的用户 ID。
    * - Param [oldOwner] 原群主的用户 ID。
@@ -720,7 +822,7 @@ export interface ChatGroupEventListener {
   /**
    * 新成员加入群组的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [member] 新成员的用户 ID。
    */
@@ -728,7 +830,7 @@ export interface ChatGroupEventListener {
   /**
    * 群组成员主动退出回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [member] 退群的成员的用户 ID。
    */
@@ -736,7 +838,7 @@ export interface ChatGroupEventListener {
   /**
    * 群公告更新回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [announcement] 新公告。
    */
@@ -747,7 +849,7 @@ export interface ChatGroupEventListener {
   /**
    * 群组添加共享文件回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [sharedFile] 添加的共享文件的 ID。
    */
@@ -755,7 +857,7 @@ export interface ChatGroupEventListener {
   /**
    * 群组删除共享文件回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [fileId] 被删除的群共享文件 ID。
    */
@@ -763,7 +865,7 @@ export interface ChatGroupEventListener {
   /**
    * 成员加入群组白名单回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [members] 被加入白名单的成员的用户 ID。
    */
@@ -771,7 +873,7 @@ export interface ChatGroupEventListener {
   /**
    * 成员移出群组白名单回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [members] 移出白名单的成员的用户 ID。
    */
@@ -782,7 +884,7 @@ export interface ChatGroupEventListener {
   /**
    * 全员禁言状态变化回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [groupId] 群组 ID。
    * - Param [isAllMuted] 是否全员禁言。
    *   - `true`：是；
@@ -882,7 +984,7 @@ export interface ChatRoomEventListener {
   /**
    * 聊天室解散的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [roomName] 聊天室名称。
    */
@@ -890,7 +992,7 @@ export interface ChatRoomEventListener {
   /**
    * 聊天室加入新成员回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [participant] 新成员用户 ID。
    */
@@ -898,7 +1000,7 @@ export interface ChatRoomEventListener {
   /**
    * 聊天室成员主动退出回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [participant] 离开聊天室的用户 ID。
    */
@@ -910,7 +1012,7 @@ export interface ChatRoomEventListener {
   /**
    * 聊天室成员被移除回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [roomName] 聊天室名称。
    * - Param [participant] 被移出聊天室的用户 ID。
@@ -923,7 +1025,7 @@ export interface ChatRoomEventListener {
   /**
    * 有成员被禁言回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [mutes] 被禁言成员的用户 ID。
    * - Param [expireTime] 预留参数，禁言过期时间戳。
@@ -936,7 +1038,7 @@ export interface ChatRoomEventListener {
   /**
    * 有成员从禁言列表中移除回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [mutes] 被移出禁言列表的用户 ID 列表。
    */
@@ -944,7 +1046,7 @@ export interface ChatRoomEventListener {
   /**
    *有成员设置为聊天室管理员的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [admin]  设置为管理员的成员的用户 ID。
    */
@@ -952,7 +1054,7 @@ export interface ChatRoomEventListener {
   /**
    * 移除聊天室管理员权限的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [admin] 被移出管理员权限的成员的用户 ID。
    */
@@ -960,7 +1062,7 @@ export interface ChatRoomEventListener {
   /**
    * 转移聊天室的所有权的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [newOwner] 新聊天室所有者的用户 ID。
    * - Param [oldOwner] 原来的聊天室所有者的用户 ID。
@@ -973,7 +1075,7 @@ export interface ChatRoomEventListener {
   /**
    * 聊天室公告更新回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [announcement] 更新后的聊天室公告。
    */
@@ -984,7 +1086,7 @@ export interface ChatRoomEventListener {
   /**
    * 有成员被加入聊天室白名单的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [members] 被加入白名单的聊天室成员的用户 ID。
    */
@@ -992,7 +1094,7 @@ export interface ChatRoomEventListener {
   /**
    * 有成员被移出聊天室白名单的回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [members] 被移出聊天室白名单列表的成员的用户 ID。
    */
@@ -1000,7 +1102,7 @@ export interface ChatRoomEventListener {
   /**
    * 聊天室全员禁言状态变化回调。
    *
-   * @param params 参数组。
+   * @params 参数组。
    * - Param [roomId] 聊天室 ID。
    * - Param [isAllMuted] 是否所有聊天室成员被禁言。
    *   - `true`：是；
@@ -1021,7 +1123,7 @@ export interface ChatRoomEventListener {
   /**
    * 聊天室自定义属性（key-value）更新回调。聊天室所有成员会收到该事件。
    *
-   * @param params -
+   * @params 参数组。
    * - roomId 聊天室 ID。
    * - attributes 更新的聊天室自定义属性列表。
    * - from 操作者的用户 ID。
@@ -1034,7 +1136,7 @@ export interface ChatRoomEventListener {
 
   /**
    * 聊天室自定义属性（key-value）移除回调。聊天室所有成员会收到该事件。
-   * @param params -
+   * @params 参数组。
    * - roomId：聊天室 ID。
    * - removedKeys: 移除的聊天室自定义属性的属性 key 列表。
    * - from: 操作者的用户 ID。

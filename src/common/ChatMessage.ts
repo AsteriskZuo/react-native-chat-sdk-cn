@@ -556,11 +556,11 @@ export class ChatMessage {
    * - 聊天室则是聊天室 ID。
    * @param content 文本消息内容。
    * @param chatType 会话类型。详见 {@link ChatType}。
-   * @param opt 消息扩展参数。
-   *   @{#targetLanguageCodes} 语言代码。详见 {@link ChatTextMessageBody.targetLanguageCodes}。
-   *   @{#isChatThread} 当前消息是否为子区消息。
-   *   - `true`：是；
-   *   - （默认）`false`：否。
+   * @params opt 消息扩展参数。
+   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isOnline: 是否为在线时收到的消息。
+   *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *
    * @returns 消息实例。
    */
   public static createTextMessage(
@@ -596,11 +596,12 @@ export class ChatMessage {
    * - 聊天室则为聊天室 ID。
    * @param filePath 文件路径。
    * @param chatType 会话类型。详见 {@link ChatType}。
-   * @param opt 消息的扩展参数。
-   *  @{#displayName} 要显示的文件名称。
-   *  @{#isChatThread} 当前消息是否为子区消息。
-   *   - `true`：是；
-   *   - （默认）`false`：否。
+   * @params opt 消息扩展参数。
+   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isOnline: 是否为在线时收到的消息。
+   *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *  - secret: 下载附件 token。
+   *
    * @returns 消息实例。
    */
   public static createFileMessage(
@@ -640,14 +641,18 @@ export class ChatMessage {
    * - 聊天室：聊天室 ID。
    * @param filePath 图片路径。
    * @param chatType 会话类型。
-   * @param opt
-   *   @{#displayName} 图片名称。
-   *   @{#thumbnailLocalPath} 图片缩略图的存储路径。
-   *   @{#sendOriginalImage} 是否发送原图：
-   *     - `true`：发送原图和缩略图。
-   *     - （默认）`false`：图片小于 100 KB 时，发送原图和缩略图；图片大于 100 KB 时，发送压缩后的图片和压缩后图片的缩略图。
-   *   @{#width} 图片宽度，单位为像素。
-   *   @{#height} 图片高度，单位为像素。
+   * @params opt 消息扩展参数。
+   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isOnline: 是否为在线时收到的消息。
+   *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *  - secret: 下载附件 token。
+   *  - displayName: 图片名称。
+   *  - thumbnailLocalPath: 缩略图本地地址。
+   *  - sendOriginalImage: 是否发送原图。
+   *  - width: 图片宽度。
+   *  - height: 图片高度。
+   *  - fileSize: 图片大小。
+   *
    * @returns 消息实例。
    */
   public static createImageMessage(
@@ -695,12 +700,18 @@ export class ChatMessage {
    * - 聊天室则是聊天室 ID。
    * @param filePath 视频文件路径。
    * @param chatType 会话类型。
-   * @param opt
-   *   @{#displayName} 视频名称
-   *   @{#thumbnailLocalPath} 视频第一帧的缩略图的存储路径。
-   *   @{#duration} 视频时长，单位为秒。
-   *   @{#width} 视频缩略图宽度，单位为像素。
-   *   @{#height} 视频缩略图高度，单位为像素。
+   * @params opt 消息扩展参数。
+   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isOnline: 是否为在线时收到的消息。
+   *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *  - secret: 下载附件 token。
+   *  - displayName: 文件名称。
+   *  - thumbnailLocalPath: 缩略图本地地址。
+   *  - duration: 视频时长。
+   *  - width: 视频宽度。
+   *  - height: 视频高度。
+   *  - fileSize: 文件大小。
+   *
    * @returns 消息实例。
    */
   public static createVideoMessage(
@@ -748,9 +759,16 @@ export class ChatMessage {
    * - 聊天室则是聊天室 ID。
    * @param filePath 语音文件路径。
    * @param chatType 会话类型。
-   * @param opt
-   *   @{#displayName} 语音文件名称。
-   *   @{#duration} 语音时长，单位为秒。
+   * @params opt 消息扩展参数。
+   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isOnline: 是否为在线时收到的消息。
+   *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *  - secret: 下载附件 token。
+   *  - displayName: 文件名称。
+   *  - thumbnailLocalPath: 缩略图本地地址。
+   *  - duration: 语音时长。
+   *  - fileSize: 文件大小。
+   *
    * @returns 消息实例。
    */
   public static createVoiceMessage(
@@ -784,6 +802,57 @@ export class ChatMessage {
   }
 
   /**
+   * 创建合并类型消息体
+   *
+   * @param targetId 消息接收方 ID。
+   * - 单聊时是接收方的用户 ID。
+   * - 群聊时是群组 ID。
+   * - 聊天室则是聊天室 ID。
+   * @param messageIdList 合并的消息列表 ID。
+   * @param chatType 会话类型。 详见 {@link ChatType}.
+   * @params opt 消息扩展参数。
+   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isOnline: 是否为在线时收到的消息。
+   *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *  - secret: 下载附件 token。
+   *  - title: 标题。
+   *  - summary: 摘要。
+   *  - compatibleText: 文本。
+   *
+   * @returns The message instance.
+   */
+  public static createCombineMessage(
+    targetId: string,
+    messageIdList: string[],
+    chatType: ChatMessageChatType = ChatMessageChatType.PeerChat,
+    opt?: {
+      title?: string;
+      summary?: string;
+      compatibleText?: string;
+      isChatThread?: boolean;
+      isOnline?: boolean;
+      deliverOnlineOnly?: boolean;
+      secret?: string;
+    }
+  ): ChatMessage {
+    return ChatMessage.createSendMessage({
+      body: new ChatCombineMessageBody({
+        localPath: '',
+        title: opt?.title,
+        summary: opt?.summary,
+        compatibleText: opt?.compatibleText,
+        messageIdList: messageIdList,
+        secret: opt?.secret,
+      }),
+      targetId: targetId,
+      chatType: chatType,
+      isChatThread: opt?.isChatThread,
+      isOnline: opt?.isOnline,
+      deliverOnlineOnly: opt?.deliverOnlineOnly,
+    });
+  }
+
+  /**
    * 创建一条待发送的位置消息。
    *
    * @param targetId 消息接收方的用户 ID。
@@ -793,8 +862,12 @@ export class ChatMessage {
    * @param latitude 纬度。
    * @param longitude 经度。
    * @param chatType 会话类型。
-   * @param opt
-   *   @{#address} 地址。
+   * @params opt 消息扩展参数。
+   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isOnline: 是否为在线时收到的消息。
+   *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *  - address: 地址信息。
+   *
    * @returns 消息实例。
    */
   public static createLocationMessage(
@@ -832,6 +905,11 @@ export class ChatMessage {
    * - 聊天室：聊天室 ID。
    * @param action 命令内容。
    * @param chatType 会话类型。
+   * @params opt 消息扩展参数。
+   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isOnline: 是否为在线时收到的消息。
+   *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *
    * @returns 消息实例。
    */
   public static createCmdMessage(
@@ -865,8 +943,12 @@ export class ChatMessage {
    * - 聊天室：聊天室 ID。
    * @param event 消息触发的自定义事件。
    * @param chatType 会话类型。
-   * @param opt
-   *   @{#params} 自定义参数字典。
+   * @params opt 消息扩展参数。
+   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isOnline: 是否为在线时收到的消息。
+   *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *  - params: 自定义参数。key-value格式。
+   *
    * @returns 消息实例。
    */
   public static createCustomMessage(

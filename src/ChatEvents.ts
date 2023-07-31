@@ -130,6 +130,10 @@ export enum ChatMultiDeviceEvent {
    * 用户 A 在设备 A1 上将所有其他群组成员移除群组禁言列表，则设备 A2 上会收到该事件。
    */
   GROUP_REMOVE_ALL_BAN,
+  /**
+   * 用户 A 在设备 A1 上修改群组成员属性，则设备 A2 上会收到该事件。
+   */
+  GROUP_METADATA_CHANGED,
 
   /**
    * 用户 A 在设备 A1 上创建了子区，则设备 A2 上会收到该事件。
@@ -1016,11 +1020,13 @@ export interface ChatRoomEventListener {
    * - Param [roomId] 聊天室 ID。
    * - Param [roomName] 聊天室名称。
    * - Param [participant] 被移出聊天室的用户 ID。
+   * - Param [reason] 移除的原因。
    */
   onRemoved?(params: {
     roomId: string;
     participant?: string;
     roomName?: string;
+    reason?: string;
   }): void;
   /**
    * 有成员被禁言回调。

@@ -2567,7 +2567,7 @@ export class ChatManager extends BaseManager {
    * @param convId 会话 ID.
    * @param isPinned 是否置顶。
    * - `true`：Yes.
-   * - `false`: No. 
+   * - `false`: No.
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */

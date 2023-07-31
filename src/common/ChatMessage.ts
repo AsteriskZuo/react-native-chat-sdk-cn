@@ -1048,7 +1048,7 @@ export class ChatLocationMessageBody extends ChatMessageBody {
 /**
  * 文件消息体基类。
  */
-export class ChatFileMessageBody extends ChatMessageBody {
+export class _ChatFileMessageBody extends ChatMessageBody {
   /**
    * 文件本地路径。
    */
@@ -1246,7 +1246,6 @@ export class ChatVideoMessageBody extends ChatFileMessageBody {
     modifyCount?: number;
   }) {
     super({
-      type: ChatMessageType.VIDEO,
       lastModifyOperatorId: params.lastModifyOperatorId,
       lastModifyTime: params.lastModifyTime,
       modifyCount: params.modifyCount,
@@ -1290,7 +1289,6 @@ export class ChatVoiceMessageBody extends ChatFileMessageBody {
     modifyCount?: number;
   }) {
     super({
-      type: ChatMessageType.VOICE,
       lastModifyOperatorId: params.lastModifyOperatorId,
       lastModifyTime: params.lastModifyTime,
       modifyCount: params.modifyCount,

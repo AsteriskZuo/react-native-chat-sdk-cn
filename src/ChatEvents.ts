@@ -324,7 +324,7 @@ export interface ChatConnectEventListener {
    *
    * @param errorCode 错误码，详见 {@link ChatError}。
    */
-  onDisconnected?(errorCode?: number): void;
+  onDisconnected?(): void;
 
   /**
    * Agora token 即将过期时触发。
@@ -447,7 +447,7 @@ export interface ChatMultiDeviceEventListener {
   onMessageRemoved?(convId?: string, deviceId?: string): void;
 
   /**
-   * The multi-device event callback for the operation of a single conversation.
+   * 会话相关的多设备通知。
    *
    * @param event The event type.
    * @param convId The conversation ID.
@@ -747,7 +747,7 @@ export interface ChatGroupEventListener {
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    */
-  onUserRemoved?(params: { groupId: string; groupName?: string }): void;
+  onMemberRemoved?(params: { groupId: string; groupName?: string }): void;
   /**
    * 当前用户收到群组被解散的回调。
    *
@@ -755,7 +755,7 @@ export interface ChatGroupEventListener {
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    */
-  onGroupDestroyed?(params: { groupId: string; groupName?: string }): void;
+  onDestroyed?(params: { groupId: string; groupName?: string }): void;
   /**
    * 当前用户自动同意入群邀请的回调。
    *
@@ -992,7 +992,7 @@ export interface ChatRoomEventListener {
    * - Param [roomId] 聊天室 ID。
    * - Param [roomName] 聊天室名称。
    */
-  onChatRoomDestroyed?(params: { roomId: string; roomName?: string }): void;
+  onDestroyed?(params: { roomId: string; roomName?: string }): void;
   /**
    * 聊天室加入新成员回调。
    *
@@ -1022,7 +1022,7 @@ export interface ChatRoomEventListener {
    * - Param [participant] 被移出聊天室的用户 ID。
    * - Param [reason] 移除的原因。
    */
-  onRemoved?(params: {
+  onMemberRemoved?(params: {
     roomId: string;
     participant?: string;
     roomName?: string;

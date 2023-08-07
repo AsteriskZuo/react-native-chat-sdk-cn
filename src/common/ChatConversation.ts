@@ -110,11 +110,13 @@ export class ChatConversation {
    */
   ext?: any;
   /**
-   * 是否置顶。
+   * 会话是否置顶：
+   * - `true`：会话置顶。
+   * - （默认） `false`：会话不置顶。
    */
   isPinned?: boolean;
   /**
-   * 置顶时间戳。
+   * 会话置顶 UNIX 时间戳，单位为毫秒，值 `0` 表示会话未置顶。
    */
   pinnedTime?: number;
 

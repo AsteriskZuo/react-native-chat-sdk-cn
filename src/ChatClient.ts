@@ -778,8 +778,11 @@ export class ChatClient extends BaseManager {
    * 关于如何获取设备 ID，详见 {@link ChatDeviceInfo#resource}。
    *
    * @param userId 用户 ID。
-   * @param password 密码。
+   * @param pwdOrToken 密码或 token。
    * @param resource 设备 ID，详见 {@link ChatDeviceInfo#resource}。
+   * @param isPassword 是否使用密码登录设备：
+   * - （默认）`true`：使用密码；
+   * - `false`：使用用户 token。
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    */

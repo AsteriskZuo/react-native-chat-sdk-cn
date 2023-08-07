@@ -295,9 +295,9 @@ export class ChatPushManager extends Native {
   /**
    * 选择离线推送模板，通知服务器。
    *
-   * 推送模板可以使用 rest API 或 控制台 添加。
+   * 推送模板可以使用 RESTful API 或控制台添加。
    *
-   * @param templateName 推送模板名字。 如果名字在控制台不存在，虽然该方法不会返回错误，但是不会生效。
+   * @param templateName 推送模板名称。 如果选择的推送模板不存在，虽然该方法不会返回错误，但是不会生效。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
@@ -310,9 +310,9 @@ export class ChatPushManager extends Native {
   }
 
   /**
-   * 获取当前模板的名字。
+   * 获取当前推送模板的名称。
    *
-   * @returns 模板名字。
+   * @returns 推送模板的名称。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */

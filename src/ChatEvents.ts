@@ -164,7 +164,7 @@ export enum ChatMultiDeviceEvent {
    */
   CONVERSATION_PINNED = 60,
   /**
-   * 用户 A 在设备 A1取消置顶会话，则设备 A2 上会收到该事件。
+   * 用户 A 在设备 A1 取消置顶会话，则设备 A2 上会收到该事件。
    */
   CONVERSATION_UNPINNED = 61,
   /**
@@ -386,9 +386,9 @@ export interface ChatConnectEventListener {
   onUserKickedByOtherDevice?(): void;
 
   /**
-   * 鉴权失败通知。 典型触发通知场景：token过期、token验证失败。
+   * 鉴权失败通知。 典型触发通知场景：token 过期、token 验证失败。
    *
-   * 服务器主动断开连接
+   * 服务器主动断开连接。
    */
   onUserAuthenticationFailed?(): void;
 }
@@ -396,7 +396,7 @@ export interface ChatConnectEventListener {
 /**
  * 多设备事件监听器。
  *
- * 该监听器监听联系人事件和群组事件。
+ * 该监听器监听联系人事件、群组事件、子区事件和会话事件。
  */
 export interface ChatMultiDeviceEventListener {
   /**
@@ -441,17 +441,17 @@ export interface ChatMultiDeviceEventListener {
   /**
    * 会话删除漫游消息后，其他设备收到该通知。
    *
-   * @param convId 会话 ID.
-   * @param deviceId 设备 ID.
+   * @param convId 会话 ID。
+   * @param deviceId 设备 ID。
    */
   onMessageRemoved?(convId?: string, deviceId?: string): void;
 
   /**
-   * 会话相关的多设备通知。
+   * 会话操作发生后，其他设备收到该通知。
    *
-   * @param event The event type.
-   * @param convId The conversation ID.
-   * @param convType The conversation type.
+   * @param event 事件类型。
+   * @param convId 会话 ID。
+   * @param convType 会话类型。
    */
   onConversationEvent?(
     event?: ChatMultiDeviceEvent,

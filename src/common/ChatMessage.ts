@@ -431,7 +431,9 @@ export class ChatMessage {
   deliverOnlineOnly: boolean;
 
   /**
-   * 指定消息接收对象列表。 默认为 `undefined`
+   * 消息接收对象列表。
+   *
+   * 默认为 `undefined`，表示群组或聊天室中的所有成员均能收到该消息。
    *
    * 该属性只在群组或者聊天室中使用。
    */
@@ -802,22 +804,28 @@ export class ChatMessage {
   }
 
   /**
-   * 创建合并类型消息体
+   * 创建合并类型消息体。
    *
-   * @param targetId 消息接收方 ID。
+   * @param targetId 消息接收方。
    * - 单聊时是接收方的用户 ID。
    * - 群聊时是群组 ID。
    * - 聊天室则是聊天室 ID。
    * @param messageIdList 合并的消息列表 ID。
    * @param chatType 会话类型。 详见 {@link ChatType}.
    * @params opt 消息扩展参数。
-   *  - isChatThread: 是否是子区消息。默认不是子区消息。
+   *  - isChatThread: 是否是子区消息。
+   *    - `true`：是；
+   *    - （默认）`false`：否。
    *  - isOnline: 是否为在线时收到的消息。
+   *    - `true`：是；
+   *    - `false`：否。
    *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *    - `true`：是。只有消息接收方在线时才能投递成功。若接收方离线，则消息会被丢弃。
+   *    - （默认）`false`：否。如果用户在线，则直接投递；如果用户离线，消息会在用户上线时投递。
    *  - secret: 下载附件 token。
-   *  - title: 标题。
-   *  - summary: 摘要。
-   *  - compatibleText: 文本。
+   *  - title: 合并消息的标题。
+   *  - summary: 合并消息的概要。
+   *  - compatibleText: 合并消息的兼容信息。该字段用于需要兼容不支持合并转发消息的版本。
    *
    * @returns The message instance.
    */
@@ -1442,21 +1450,21 @@ export class ChatCustomMessageBody extends ChatMessageBody {
  */
 export class ChatCombineMessageBody extends _ChatFileMessageBody {
   /**
-   * 标题
+   * 合并消息的标题。
    */
   title?: string;
   /**
-   * 摘要
+   * 合并消息的概要。
    */
   summary?: string;
   /**
-   * 消息ID列表。
+   * 合并消息的原始消息 ID 列表。
    *
    * **注意** 该属性只用在创建发送消息的场景。
    */
   messageIdList?: string[];
   /**
-   * 文本。
+   * 合并消息的兼容文本。
    */
   compatibleText?: string;
   constructor(params: {

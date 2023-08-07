@@ -141,12 +141,15 @@ export class ChatOptions {
   areaCode: ChatAreaCode;
 
   /**
-   * 是否包含空会话（没有消息的会话）
+   * SDK 从本地数据库中加载会话时是否包含空会话（没有消息的会话）：
+   *
+   * - `true`：包含空会话；
+   * - （默认）`false`：不包含空会话。
    */
   enableEmptyConversation: boolean;
 
   /**
-   * 自定义设备名字。
+   * 自定义设备名称。
    *
    * `customOSType` 设置为 -1，则该属性不生效。
    *

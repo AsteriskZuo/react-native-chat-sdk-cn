@@ -2480,12 +2480,15 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 分页获取会话列表
+   * 分页从服务器获取会话列表。
    *
-   * 按照会话最后一条消息时间戳逆序排序，如果会话没有最后一条消息，按照创建会话消息逆序排序。
+   * SDK 按照会话活跃时间（会话的最后一条消息的时间戳）倒序返回会话列表。
    *
-   * @param cursor: 查询数据起始位置。如果为 空字符串 或者 `undefined` 从默认位置开始查询。
-   * @param pageSize: 请求最大会话数量。范围 [1，50]。
+   * 若会话中没有消息，则 SDK 按照会话创建时间的倒序返回会话列表。
+   *
+   * @param cursor: 查询数据起始位置。如果为空字符串或者 `undefined`，SDK 从最新活跃的会话开始获取。
+   *
+   * @param pageSize: 每页期望返回的会话数量。取值范围为 [1,50]。
    *
    * @returns 会话列表。
    *
@@ -2521,11 +2524,11 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 分页获取置顶会话列表
+   * 分页从服务器获取置顶会话。
    *
-   * 按照会话最后一条消息时间戳逆序排序，如果会话没有最后一条消息，按照创建会话消息逆序排序。
+   * SDK 按照会话置顶时间倒序返回。
    *
-   * @param cursor: 查询数据起始位置。如果为 空字符串 或者 `undefined` 从默认位置开始查询。
+   * @param cursor: 查询数据起始位置。如果为空字符串或者 `undefined`，SDK 从最新置顶的会话开始查询。
    * @param pageSize: 请求最大会话数量。范围 [1，50]。
    *
    * @returns 会话列表。
@@ -2566,8 +2569,8 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID.
    * @param isPinned 是否置顶。
-   * - `true`：Yes.
-   * - `false`: No.
+   *  - `true`：置顶；
+   * 	- `false`: 取消置顶。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
@@ -2586,14 +2589,16 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 修改文本消息。同时修改本地消息和服务器消息。
+   * 修改文本消息。
    *
-   * 消息必须是文本消息。消息回话类型必须为单人或者群组。不支持聊天室。
+   * 调用该方法修改消息内容后，本地和服务端的消息均会修改。
+   *
+   * 调用该方法只能修改单聊和群聊中的文本消息，不能修改聊天室消息。
    *
    * @param msgId 修改消息 ID。
-   * @param body 文本消息body。详见 {@link ChatTextMessageBody}.
+   * @param body 文本消息 body。详见 {@link ChatTextMessageBody}。
    *
-   * @returns 修改后的消息。 详见 {@link ChatMessageBody}.
+   * @returns 修改后的消息。 详见 {@link ChatMessageBody}。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
@@ -2623,11 +2628,13 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 获取合并类型消息的消息列表。 合并消息包含1条或者多条其它类型消息。
+   * 获取合并类型消息中的原始消息列表。
+   *
+   * 合并消息包含 1 条或者多条其它类型消息。
    *
    * @param message 合并类型的消息。
    *
-   * @returns 消息body里面的消息列表。
+   * @returns 消息 body 里面的原始消息列表。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */

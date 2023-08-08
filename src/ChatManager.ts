@@ -809,6 +809,8 @@ export class ChatManager extends BaseManager {
   /**
    * 分页获取指定会话的历史消息。
    *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
+   *
    * @param convId 会话 ID。
    * @param chatType 会话类型。详见 {@link ChatConversationType}。
    * @param -
@@ -855,6 +857,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 根据消息拉取参数配置从服务器分页获取指定会话的历史消息。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param chatType 会话类型。详见 {@link ChatConversationType}.
@@ -1151,6 +1155,8 @@ export class ChatManager extends BaseManager {
    *
    * SDK 会先从内存中获取。如果没有找到会从本地数据库中获取，并放到内存中。
    *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
+   *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
    * @returns 获取到的消息。如果没有找到返回 `undefined`。
@@ -1178,6 +1184,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 获取指定会话最新收到的一条消息。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
@@ -1207,6 +1215,8 @@ export class ChatManager extends BaseManager {
   /**
    * 获取指定会话中的未读消息数。
    *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
+   *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
    * @returns 未读消息数。
@@ -1235,6 +1245,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 将指定消息标为已读。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
@@ -1266,6 +1278,8 @@ export class ChatManager extends BaseManager {
   /**
    * 将所有消息标为已读。
    *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
+   *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
    *
@@ -1293,6 +1307,8 @@ export class ChatManager extends BaseManager {
    * 更新本地数据库的消息。
    *
    * 消息更新后，消息 ID 不会修改，SDK 会自动更新会话的 `latestMessage` 等属性。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
@@ -1324,6 +1340,8 @@ export class ChatManager extends BaseManager {
   /**
    * 删除指定消息。
    *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
+   *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
    * @param msgId 要删除消息的 ID。
@@ -1350,6 +1368,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 从本地数据库中删除指定时间段内的消息。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}.
@@ -1383,6 +1403,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 清除内存和数据库中指定会话中的消息。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}.
@@ -1429,6 +1451,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 从本地数据库获取会话中的指定用户发送的某些类型的消息。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
@@ -1487,9 +1511,8 @@ export class ChatManager extends BaseManager {
   /**
    * 从本地数据库获取指定会话中一定数量的消息。
    *
-   * **注意**
-   *
-   * 获取到的消息也会放入到内存中。
+   * **注意** 获取到的消息也会放入到内存中。
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
@@ -1538,6 +1561,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 从本地数据库获取会话中的指定用户在一定时间段内发送的特定消息。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
@@ -1595,6 +1620,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 从本地数据库获取指定会话在一段时间内的消息。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
@@ -1696,6 +1723,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 设置会话的扩展属性。
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
@@ -2419,6 +2448,8 @@ export class ChatManager extends BaseManager {
   /**
    * 根据消息 ID 单向删除漫游消息
    *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
+   *
    * @param convId 会话ID。
    * @param convType 会话类型。
    * @param msgIds 将要删除的消息ID列表。
@@ -2451,6 +2482,8 @@ export class ChatManager extends BaseManager {
 
   /**
    * 根据消息 时间戳 单向删除漫游消息
+   *
+   * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话ID。
    * @param convType 会话类型。

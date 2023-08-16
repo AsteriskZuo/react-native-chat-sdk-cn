@@ -602,7 +602,6 @@ export class ChatMessage {
    *  - isChatThread: 是否是子区消息。默认不是子区消息。
    *  - isOnline: 是否为在线时收到的消息。
    *  - deliverOnlineOnly: 消息是否只投递给在线用户。
-   *  - secret: 下载附件 token。
    *
    * @returns 消息实例。
    */
@@ -616,7 +615,6 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
-      secret?: string;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -624,7 +622,6 @@ export class ChatMessage {
         localPath: filePath,
         displayName: opt?.displayName ?? '',
         fileSize: opt?.fileSize,
-        secret: opt?.secret,
       }),
       targetId: targetId,
       chatType: chatType,
@@ -647,7 +644,6 @@ export class ChatMessage {
    *  - isChatThread: 是否是子区消息。默认不是子区消息。
    *  - isOnline: 是否为在线时收到的消息。
    *  - deliverOnlineOnly: 消息是否只投递给在线用户。
-   *  - secret: 下载附件 token。
    *  - displayName: 图片名称。
    *  - thumbnailLocalPath: 缩略图本地地址。
    *  - sendOriginalImage: 是否发送原图。
@@ -671,7 +667,6 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
-      secret?: string;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -683,7 +678,6 @@ export class ChatMessage {
         width: opt?.width,
         height: opt?.height,
         fileSize: opt?.fileSize,
-        secret: opt?.secret,
       }),
       targetId: targetId,
       chatType: chatType,
@@ -706,7 +700,6 @@ export class ChatMessage {
    *  - isChatThread: 是否是子区消息。默认不是子区消息。
    *  - isOnline: 是否为在线时收到的消息。
    *  - deliverOnlineOnly: 消息是否只投递给在线用户。
-   *  - secret: 下载附件 token。
    *  - displayName: 文件名称。
    *  - thumbnailLocalPath: 缩略图本地地址。
    *  - duration: 视频时长。
@@ -730,7 +723,6 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
-      secret?: string;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -742,7 +734,6 @@ export class ChatMessage {
         width: opt?.width,
         height: opt?.height,
         fileSize: opt?.fileSize,
-        secret: opt?.secret,
       }),
       targetId: targetId,
       chatType: chatType,
@@ -765,7 +756,6 @@ export class ChatMessage {
    *  - isChatThread: 是否是子区消息。默认不是子区消息。
    *  - isOnline: 是否为在线时收到的消息。
    *  - deliverOnlineOnly: 消息是否只投递给在线用户。
-   *  - secret: 下载附件 token。
    *  - displayName: 文件名称。
    *  - thumbnailLocalPath: 缩略图本地地址。
    *  - duration: 语音时长。
@@ -784,7 +774,6 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
-      secret?: string;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -793,7 +782,6 @@ export class ChatMessage {
         displayName: opt?.displayName ?? '',
         duration: opt?.duration,
         fileSize: opt?.fileSize,
-        secret: opt?.secret,
       }),
       targetId: targetId,
       chatType: chatType,
@@ -822,7 +810,6 @@ export class ChatMessage {
    *  - deliverOnlineOnly: 消息是否只投递给在线用户。
    *    - `true`：是。只有消息接收方在线时才能投递成功。若接收方离线，则消息会被丢弃。
    *    - （默认）`false`：否。如果用户在线，则直接投递；如果用户离线，消息会在用户上线时投递。
-   *  - secret: 下载附件 token。
    *  - title: 合并消息的标题。
    *  - summary: 合并消息的概要。
    *  - compatibleText: 合并消息的兼容信息。该字段用于需要兼容不支持合并转发消息的版本。
@@ -840,7 +827,6 @@ export class ChatMessage {
       isChatThread?: boolean;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
-      secret?: string;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -850,7 +836,6 @@ export class ChatMessage {
         summary: opt?.summary,
         compatibleText: opt?.compatibleText,
         messageIdList: messageIdList,
-        secret: opt?.secret,
       }),
       targetId: targetId,
       chatType: chatType,

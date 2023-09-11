@@ -43,7 +43,7 @@ export class ChatOptions {
    */
   autoAcceptGroupInvitation: boolean;
   /**
-   * 是否需要接收方发送已读回执。
+   * 是否需要接收方发送已读回执。这个设置对于 {@link ChatManager.sendConversationReadAck} 无效。
    * - （默认） `true`：是；
    * - `false`：否。
    */

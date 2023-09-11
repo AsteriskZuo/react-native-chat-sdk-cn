@@ -345,32 +345,32 @@ export class ChatMessage {
    */
   serverTime: number = getNowTimestamp();
   /**
-   * 是否需要消息接收方发送消息送达回执：
+   * 单聊时，发送的消息是否送达至接收方。要使该参数生效，初始化时需接收方设置 {@link ChatOptions.requireDeliveryAck} 为 `true`。群消息不支持送达回执。
    *
    * - `true`：是。
    * - （默认）`false`：否。
    */
   hasDeliverAck: boolean = false;
   /**
-   * 是否需要消息接收方发送已读回执：
+   * 单聊时，发送方是否收到了接收方的已读回执。接收方阅读消息后会调用 {@link ChatManager.sendMessageReadAck} 或者 {@link ChatManager.sendConversationReadAck} 发送已读回执。若需要已读回执，SDK 初始化时需设置 {@link ChatOptions.requireAck} 为 `true`。
    *
    * - `true`：是。
    * - （默认）`false`：否。
    */
   hasReadAck: boolean = false;
   /**
-   * 是否需要群组消息已读回执：
+   * 群聊时，是否需要消息已读回执。
    *
    * - `true`：是。
    * - （默认）`false`：否。
    */
   needGroupAck: boolean = false;
   /**
-   * 群组消息已读回执数。
+   * 群聊时，已阅读消息的群成员数量。群成员已读消息后调用 {@link ChatManager.sendGroupMessageReadAck} 或者 {@link ChatManager.sendConversationReadAck} 发送已读回执。若需要开启已读回执功能，初始化时需设置 {@link ChatOptions.requireAck} 为 `true`， 并且发送消息时设置 {@link isNeedGroupAck} 为 `true`。
    */
   groupAckCount: number = 0;
   /**
-   * 消息是否已读：
+   * 单聊或群聊时，接收方是否已读了消息。该参数的值影响会话的未读消息数。阅读消息后，接收方可以调用 {@link ChatManager.markMessageAsRead} 或者 {@link ChatManager.markAllMessagesAsRead} 将消息设置为已读。
    *
    * - `true`：是。
    * - （默认）`false`：否。

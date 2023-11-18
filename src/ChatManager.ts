@@ -36,6 +36,7 @@ import {
   MTgetLatestMessageFromOthers,
   MTgetMessage,
   MTgetMessageThread,
+  MTgetMsgCount,
   MTgetPinnedConversationsFromServerWithCursor,
   MTgetReactionList,
   MTgetThreadConversation,
@@ -88,6 +89,7 @@ import {
   MTupdateConversationMessage,
 } from './__internal__/Consts';
 import { Native } from './__internal__/Native';
+import { ChatClient } from './ChatClient';
 import type { ChatMessageEventListener } from './ChatEvents';
 import { chatlog } from './common/ChatConst';
 import {
@@ -1244,13 +1246,44 @@ export class ChatManager extends BaseManager {
   }
 
   /**
+   * Gets the message count of the conversation.
+   *
+   * **note** If the conversation object does not exist, this method will create it.
+   *
+   * @param convId The conversation ID.
+   * @param convType The conversation type. See {@link ChatConversationType}.
+   * @returns The message count.
+   *
+   * @throws A description of the exception. See {@link ChatError}.
+   */
+  public async getConversationMessageCount(
+    convId: string,
+    convType: ChatConversationType
+  ): Promise<number> {
+    chatlog.log(
+      `${ChatManager.TAG}: getConversationMessageCount: `,
+      convId,
+      convType
+    );
+    let r: any = await Native._callMethod(MTgetMsgCount, {
+      [MTgetMsgCount]: {
+        convId: convId,
+        convType: convType,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    const ret: number = r?.[MTgetMsgCount] as number;
+    return ret;
+  }
+
+  /**
    * 将指定消息标为已读。
    *
    * **注意** 调用该方法，如果会话对象不存在则创建。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @param msgId 消息 ID。
+   * @param msgId 消息ID。
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    */
@@ -2502,6 +2535,20 @@ export class ChatManager extends BaseManager {
       convType,
       timestamp
     );
+    if (timestamp <= 0) {
+      // todo: temp fix native
+      console.log(
+        `${ChatManager.TAG}: removeMessagesFromServerWithTimestamp: timestamp <= 0`
+      );
+      throw new ChatError({ code: 1, description: 'timestamp <= 0' });
+    }
+    if ((await ChatClient.getInstance().isLoginBefore()) === false) {
+      // todo: temp fix native
+      console.log(
+        `${ChatManager.TAG}: removeMessagesFromServerWithTimestamp: not logged in yet.`
+      );
+      throw new ChatError({ code: 1, description: 'not logged in yet' });
+    }
     let r: any = await Native._callMethod(MTremoveMessagesFromServerWithTs, {
       [MTremoveMessagesFromServerWithTs]: {
         convId: convId,

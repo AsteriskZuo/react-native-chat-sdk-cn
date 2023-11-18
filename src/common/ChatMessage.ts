@@ -391,7 +391,7 @@ export class ChatMessage {
   /**
    * 消息的扩展属性。
    */
-  attributes: Object = {};
+  attributes: Record<string, any>;
   /**
    * 消息体实例，详见 {@link ChatMessageBody}。
    */
@@ -440,6 +440,11 @@ export class ChatMessage {
   receiverList?: string[];
 
   /**
+   * 是否是广播消息。
+   */
+  isBroadcast: boolean;
+
+  /**
    * 构造消息。
    */
   public constructor(params: {
@@ -464,6 +469,7 @@ export class ChatMessage {
     isOnline?: boolean;
     deliverOnlineOnly?: boolean;
     receiverList?: string[];
+    isBroadcast?: boolean;
   }) {
     this.msgId = params.msgId ?? generateMessageId();
     this.conversationId = params.conversationId ?? '';
@@ -479,13 +485,40 @@ export class ChatMessage {
     this.chatType = ChatMessageChatTypeFromNumber(params.chatType ?? 0);
     this.direction = ChatMessageDirectionFromString(params.direction ?? 'send');
     this.status = ChatMessageStatusFromNumber(params.status ?? 0);
-    this.attributes = params.attributes ?? {};
+    this.attributes = {};
+    this.fromAttributes(params.attributes);
     this.body = ChatMessage.getBody(params.body);
     this.localMsgId = this.localTime.toString();
     this.isChatThread = params.isChatThread ?? false;
     this.isOnline = params.isOnline ?? true;
     this.deliverOnlineOnly = params.deliverOnlineOnly ?? false;
     this.receiverList = params.receiverList;
+    this.isBroadcast = params.isBroadcast ?? false;
+  }
+
+  private fromAttributes(attributes: any) {
+    if (attributes) {
+      const keys = Object.getOwnPropertyNames(attributes);
+      for (const key of keys) {
+        const v = attributes[key];
+        if (typeof v === 'object') {
+          this.attributes[key] = v;
+        } else if (typeof v === 'function') {
+          this.attributes[key] = v;
+        } else if (typeof v === 'symbol' || typeof v === 'undefined') {
+          this.attributes[key] = v;
+        } else if (typeof v === 'string') {
+          // !!! maybe json string
+          try {
+            this.attributes[key] = JSON.parse(v);
+          } catch (error) {
+            this.attributes[key] = v;
+          }
+        } else {
+          this.attributes[key] = v;
+        }
+      }
+    }
   }
 
   private static getBody(params: any): ChatMessageBody {
@@ -533,6 +566,7 @@ export class ChatMessage {
     isChatThread?: boolean;
     isOnline?: boolean;
     deliverOnlineOnly?: boolean;
+    receiverList?: string[];
   }): ChatMessage {
     let r = new ChatMessage({
       from: ChatClient.getInstance().currentUserName ?? '',
@@ -545,6 +579,7 @@ export class ChatMessage {
       conversationId: params.targetId,
       isOnline: params.isOnline,
       deliverOnlineOnly: params.deliverOnlineOnly,
+      receiverList: params.receiverList,
     });
     return r;
   }
@@ -574,6 +609,7 @@ export class ChatMessage {
       targetLanguageCodes?: Array<string>;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      receiverList?: string[];
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -586,6 +622,7 @@ export class ChatMessage {
       isChatThread: opt?.isChatThread,
       isOnline: opt?.isOnline,
       deliverOnlineOnly: opt?.deliverOnlineOnly,
+      receiverList: opt?.receiverList,
     });
   }
 
@@ -615,6 +652,7 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      receiverList?: string[];
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -628,6 +666,7 @@ export class ChatMessage {
       isChatThread: opt?.isChatThread,
       isOnline: opt?.isOnline,
       deliverOnlineOnly: opt?.deliverOnlineOnly,
+      receiverList: opt?.receiverList,
     });
   }
 
@@ -667,6 +706,7 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      receiverList?: string[];
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -684,6 +724,7 @@ export class ChatMessage {
       isChatThread: opt?.isChatThread,
       isOnline: opt?.isOnline,
       deliverOnlineOnly: opt?.deliverOnlineOnly,
+      receiverList: opt?.receiverList,
     });
   }
 
@@ -723,6 +764,7 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      receiverList?: string[];
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -740,6 +782,7 @@ export class ChatMessage {
       isChatThread: opt?.isChatThread,
       isOnline: opt?.isOnline,
       deliverOnlineOnly: opt?.deliverOnlineOnly,
+      receiverList: opt?.receiverList,
     });
   }
 
@@ -774,6 +817,7 @@ export class ChatMessage {
       fileSize?: number;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      receiverList?: string[];
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -788,6 +832,7 @@ export class ChatMessage {
       isChatThread: opt?.isChatThread,
       isOnline: opt?.isOnline,
       deliverOnlineOnly: opt?.deliverOnlineOnly,
+      receiverList: opt?.receiverList,
     });
   }
 
@@ -827,6 +872,7 @@ export class ChatMessage {
       isChatThread?: boolean;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      receiverList?: string[];
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -842,6 +888,7 @@ export class ChatMessage {
       isChatThread: opt?.isChatThread,
       isOnline: opt?.isOnline,
       deliverOnlineOnly: opt?.deliverOnlineOnly,
+      receiverList: opt?.receiverList,
     });
   }
 
@@ -873,6 +920,7 @@ export class ChatMessage {
       isChatThread?: boolean;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      receiverList?: string[];
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -886,6 +934,7 @@ export class ChatMessage {
       isChatThread: opt?.isChatThread,
       isOnline: opt?.isOnline,
       deliverOnlineOnly: opt?.deliverOnlineOnly,
+      receiverList: opt?.receiverList,
     });
   }
 
@@ -913,6 +962,7 @@ export class ChatMessage {
       isChatThread?: boolean;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      receiverList?: string[];
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -924,6 +974,7 @@ export class ChatMessage {
       isChatThread: opt?.isChatThread,
       isOnline: opt?.isOnline,
       deliverOnlineOnly: opt?.deliverOnlineOnly,
+      receiverList: opt?.receiverList,
     });
   }
 
@@ -953,6 +1004,7 @@ export class ChatMessage {
       isChatThread?: boolean;
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
+      receiverList?: string[];
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -965,6 +1017,7 @@ export class ChatMessage {
       isChatThread: opt?.isChatThread,
       isOnline: opt?.isOnline,
       deliverOnlineOnly: opt?.deliverOnlineOnly,
+      receiverList: opt?.receiverList,
     });
   }
 
@@ -1176,7 +1229,7 @@ export class _ChatFileMessageBody extends ChatMessageBody {
 }
 
 /**
- * The file message body class.
+ * 文件类型的消息体。
  */
 export class ChatFileMessageBody extends _ChatFileMessageBody {
   constructor(params: {
@@ -1273,7 +1326,7 @@ export class ChatImageMessageBody extends _ChatFileMessageBody {
 /**
  * 视频消息体基类。
  */
-export class ChatVideoMessageBody extends ChatFileMessageBody {
+export class ChatVideoMessageBody extends _ChatFileMessageBody {
   /**
    * 视频时长，单位为秒。
    */
@@ -1321,6 +1374,7 @@ export class ChatVideoMessageBody extends ChatFileMessageBody {
     modifyCount?: number;
   }) {
     super({
+      type: ChatMessageType.VIDEO,
       lastModifyOperatorId: params.lastModifyOperatorId,
       lastModifyTime: params.lastModifyTime,
       modifyCount: params.modifyCount,
@@ -1346,7 +1400,7 @@ export class ChatVideoMessageBody extends ChatFileMessageBody {
 /**
  * 语音消息体基类。
  */
-export class ChatVoiceMessageBody extends ChatFileMessageBody {
+export class ChatVoiceMessageBody extends _ChatFileMessageBody {
   /**
    * 语音时长，单位为秒。
    */
@@ -1364,6 +1418,7 @@ export class ChatVoiceMessageBody extends ChatFileMessageBody {
     modifyCount?: number;
   }) {
     super({
+      type: ChatMessageType.VOICE,
       lastModifyOperatorId: params.lastModifyOperatorId,
       lastModifyTime: params.lastModifyTime,
       modifyCount: params.modifyCount,

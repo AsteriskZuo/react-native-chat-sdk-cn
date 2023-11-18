@@ -142,6 +142,7 @@ export const MTonChatThreadUserRemoved = 'onChatThreadUserRemoved';
 
 /// ChatConversionManager methods
 export const MTgetUnreadMsgCount = 'getUnreadMsgCount';
+export const MTgetMsgCount = 'getMsgCount';
 export const MTmarkAllMessagesAsRead = 'markAllMessagesAsRead';
 export const MTmarkMessageAsRead = 'markMessageAsRead';
 export const MTsyncConversationExt = 'syncConversationExt';
@@ -341,3 +342,10 @@ export const MTleaveChatThread = 'leaveChatThread';
 export const MTdestroyChatThread = 'destroyChatThread';
 export const MTgetMessageThread = 'getMessageThread';
 export const MTgetThreadConversation = 'getThreadConversation';
+
+export const MTgetAllContacts = 'getAllContacts';
+export const MTsetContactRemark = 'setContactRemark';
+export const MTgetContact = 'getContact';
+export const MTfetchAllContacts = 'fetchAllContacts';
+export const MTfetchContacts = 'fetchContacts';
+export const MTfetchJoinedGroupCount = 'fetchJoinedGroupCount';

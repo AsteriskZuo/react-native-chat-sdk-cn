@@ -303,13 +303,13 @@ export class ChatConversation {
   }
 
   /**
-   * Deletes messages sent or received in a certain period from the local database.
+   * 删除消息。
    *
    * @params 参数组。
-   * - startTs: The starting UNIX timestamp for message deletion. The unit is millisecond.
-   * - endTs: The end UNIX timestamp for message deletion. The unit is millisecond.
+   * - startTs: 开始的时间戳
+   * - endTs: 结束的时间戳
    *
-   * @throws A description of the exception. See {@link ChatError}.
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
    */
   public async deleteMessagesWithTimestamp(params: {
     startTs: number;
@@ -323,11 +323,11 @@ export class ChatConversation {
   }
 
   /**
-   * Deletes all the messages of the conversation.
+   * 删除会话的所有消息。
    *
-   * This method deletes all the messages of the conversation from both the memory and local database.
+   * 该方法将缓存和数据库的消息全部删除。
    *
-   * @throws A description of the exception. See {@link ChatError}.
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
    */
   public async deleteAllMessages(): Promise<void> {
     return ChatClient.getInstance().chatManager.deleteConversationAllMessages(

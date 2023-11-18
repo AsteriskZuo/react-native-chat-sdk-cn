@@ -14,6 +14,7 @@ import {
   MTdeclineJoinApplication,
   MTdestroyGroup,
   MTdownloadGroupSharedFile,
+  MTfetchJoinedGroupCount,
   MTfetchMemberAttributesFromGroup,
   MTfetchMembersAttributesFromGroup,
   MTgetGroupAllowListFromServer,
@@ -126,6 +127,7 @@ export class ChatGroupManager extends BaseManager {
             groupId: params.groupId,
             decliner: params.decliner,
             groupName: params?.groupName,
+            applicant: params?.applicant,
             reason: params?.reason,
           });
           break;
@@ -1611,9 +1613,23 @@ export class ChatGroupManager extends BaseManager {
   }
 
   /**
-   * 添加群组监听器。
+   * 获取已加入的群组数目。
    *
-   * @param listener 要添加的群组监听器。
+   * @returns 已加入群组的数目。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async fetchJoinedGroupCount(): Promise<number> {
+    chatlog.log(`${ChatGroupManager.TAG}: fetchJoinedGroupCount: `);
+    let r: any = await Native._callMethod(MTfetchJoinedGroupCount);
+    ChatGroupManager.checkErrorFromResult(r);
+    return r?.[MTfetchJoinedGroupCount];
+  }
+
+  /**
+   * 添加群组监听器
+   *
+   * @param listener 将要添加的群组监听器。
    */
   public addGroupListener(listener: ChatGroupEventListener): void {
     chatlog.log(`${ChatGroupManager.TAG}: addGroupListener: `);

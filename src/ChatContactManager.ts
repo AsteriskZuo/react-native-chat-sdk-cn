@@ -7,17 +7,24 @@ import {
   MTaddUserToBlockList,
   MTdeclineInvitation,
   MTdeleteContact,
+  MTfetchAllContacts,
+  MTfetchContacts,
+  MTgetAllContacts,
   MTgetAllContactsFromDB,
   MTgetAllContactsFromServer,
   MTgetBlockListFromDB,
   MTgetBlockListFromServer,
+  MTgetContact,
   MTgetSelfIdsOnOtherPlatform,
   MTonContactChanged,
   MTremoveUserFromBlockList,
+  MTsetContactRemark,
 } from './__internal__/Consts';
 import { Native } from './__internal__/Native';
 import type { ChatContactEventListener } from './ChatEvents';
 import { chatlog } from './common/ChatConst';
+import { ChatContact } from './common/ChatContact';
+import { ChatCursorResult } from './common/ChatCursorResult';
 import { ChatError } from './common/ChatError';
 
 /**
@@ -287,5 +294,113 @@ export class ChatContactManager extends BaseManager {
     ChatContactManager.checkErrorFromResult(r);
     const ret: string[] = r?.[MTgetSelfIdsOnOtherPlatform];
     return ret;
+  }
+
+  /**
+   * 从本地数据库获取所有所有联系人。
+   *
+   * @returns 联系人列表。
+   *
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   */
+  public async getAllContacts(): Promise<ChatContact[]> {
+    chatlog.log(`${ChatContactManager.TAG}: getAllContacts: `);
+    let r: any = await Native._callMethod(MTgetAllContacts);
+    ChatContactManager.checkErrorFromResult(r);
+    const list: any[] = r?.[MTgetAllContacts];
+    const ret: ChatContact[] = [];
+    for (const i of list) {
+      ret.push(new ChatContact(i));
+    }
+    return ret;
+  }
+
+  /**
+   * 从本地数据库获取指定联系人备注信息。
+   *
+   * @param userId 用户ID。
+   * @returns 联系人对象。
+   *
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   */
+  public async getContact(userId: string): Promise<ChatContact> {
+    chatlog.log(`${ChatContactManager.TAG}: getContact: `);
+    let r: any = await Native._callMethod(MTgetContact, {
+      [MTgetContact]: {
+        userId,
+      },
+    });
+    ChatContactManager.checkErrorFromResult(r);
+    return new ChatContact(r?.[MTgetContact]);
+  }
+
+  /**
+   * 从服务器获取所有联系人。
+   *
+   * @returns 联系人列表。
+   *
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   */
+  public async fetchAllContacts(): Promise<ChatContact[]> {
+    chatlog.log(`${ChatContactManager.TAG}: fetchAllContacts: `);
+    let r: any = await Native._callMethod(MTfetchAllContacts);
+    ChatContactManager.checkErrorFromResult(r);
+    const list: any[] = r?.[MTfetchAllContacts];
+    const ret: ChatContact[] = [];
+    for (const i of list) {
+      ret.push(new ChatContact(i));
+    }
+    return ret;
+  }
+
+  /**
+   * 从服务器分页获取联系人
+   * @params params -
+   * - cursor: 分页游标，默认为空，可以请求第一页。
+   * - pageSize: 每页最大数目。默认20。 [1-50]
+   * @returns 联系人列表。
+   *
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   */
+  public async fetchContacts(params: {
+    cursor?: string;
+    pageSize?: number;
+  }): Promise<ChatCursorResult<ChatContact>> {
+    chatlog.log(`${ChatContactManager.TAG}: fetchContacts: `);
+    let r: any = await Native._callMethod(MTfetchContacts, {
+      [MTfetchContacts]: {
+        cursor: params.cursor,
+        pageSize: params.pageSize ?? 20,
+      },
+    });
+    ChatContactManager.checkErrorFromResult(r);
+    let ret = new ChatCursorResult<ChatContact>({
+      cursor: r?.[MTfetchContacts].cursor,
+      list: r?.[MTfetchContacts].list,
+      opt: {
+        map: (param: any) => {
+          return new ChatContact(param);
+        },
+      },
+    });
+    return ret;
+  }
+
+  /**
+   * 设置联系人备注。
+   *
+   * @param contact 联系人对象，包括将要设置的备注。
+   *
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   */
+  public async setContactRemark(contact: ChatContact): Promise<void> {
+    chatlog.log(`${ChatContactManager.TAG}: setContactRemark: `);
+    let r: any = await Native._callMethod(MTsetContactRemark, {
+      [MTsetContactRemark]: {
+        userId: contact.userId,
+        remark: contact.remark,
+      },
+    });
+    ChatContactManager.checkErrorFromResult(r);
   }
 }

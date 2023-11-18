@@ -701,12 +701,14 @@ export interface ChatGroupEventListener {
    * - Param [groupId] 群组 ID。
    * - Param [groupName] 群组名称。
    * - Param [decliner] 拒绝人的用户 ID。
+   * - Param [applicant] 申请人的用户 ID。
    * - Param [reason] 拒绝理由。
    */
   onRequestToJoinDeclined?(params: {
     groupId: string;
     decliner: string;
     groupName?: string;
+    applicant?: string;
     reason?: string;
   }): void;
   /**

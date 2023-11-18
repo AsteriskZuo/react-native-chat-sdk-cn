@@ -72,9 +72,13 @@ export class ChatRoomManager extends Native {
 
   private invokeRoomListener(params: any): void {
     this._roomListeners.forEach((listener: ChatRoomEventListener) => {
-      const contactEventType = params.type;
+      const contactEventType = params?.type;
+      if (contactEventType === undefined) {
+        chatlog.warn('invokeRoomListener:invokeRoomListener:', params);
+        return;
+      }
       switch (contactEventType) {
-        case 'onChatRoomDestroyed':
+        case 'onDestroyed':
           listener.onDestroyed?.({
             roomId: params.roomId,
             roomName: params.roomName,

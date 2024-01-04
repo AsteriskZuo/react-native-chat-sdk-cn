@@ -52,6 +52,8 @@ export class ChatOptions {
    * 是否需要接收方发送送达回执。
    * -（默认）`true`：是；
    * - `false`：否。
+   *
+   * 只对单聊有效。 {@link ChatMessageChatType.PeerChat}
    */
   requireDeliveryAck: boolean;
   /**

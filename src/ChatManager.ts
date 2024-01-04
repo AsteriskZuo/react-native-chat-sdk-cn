@@ -2500,6 +2500,20 @@ export class ChatManager extends BaseManager {
       convType,
       msgIds
     );
+    if (msgIds.length === 0) {
+      // todo: temp fix native
+      console.log(
+        `${ChatManager.TAG}: removeMessagesFromServerWithMsgIds: msgIds count is 0`
+      );
+      throw new ChatError({ code: 1, description: 'msgIds count is 0' });
+    }
+    if ((await ChatClient.getInstance().isLoginBefore()) === false) {
+      // todo: temp fix native
+      console.log(
+        `${ChatManager.TAG}: removeMessagesFromServerWithMsgIds: not logged in yet.`
+      );
+      throw new ChatError({ code: 1, description: 'not logged in yet' });
+    }
     let r: any = await Native._callMethod(
       MTremoveMessagesFromServerWithMsgIds,
       {

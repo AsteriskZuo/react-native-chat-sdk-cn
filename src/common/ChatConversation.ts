@@ -189,6 +189,18 @@ export class ChatConversation {
   }
 
   /**
+   * 获取会话的消息数目。
+   * @returns 消息的数目。
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   */
+  public async getMessageCount(): Promise<number> {
+    return ChatClient.getInstance().chatManager.getConversationMessageCount(
+      this.convId,
+      this.convType
+    );
+  }
+
+  /**
    * 获取指定会话的最新消息。
    *
    * @returns 消息实例。如果不存在返回 `undefined`。
@@ -534,6 +546,22 @@ export class ChatConversation {
       this.convId,
       this.convType,
       timestamp
+    );
+  }
+
+  /**
+   * 是否设置会话置顶。
+   *
+   * @param -
+   * - `true`：是.
+   * - `false`: 否. 
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async pinConversation(isPinned: boolean): Promise<void> {
+    return ChatClient.getInstance().chatManager.pinConversation(
+      this.convId,
+      isPinned
     );
   }
 }

@@ -43,11 +43,13 @@ import {
   MTrenewToken,
   MTupdatePushConfig,
 } from './__internal__/Consts';
+import { ExceptionHandler } from './__internal__/ErrorHandler';
 import { Native } from './__internal__/Native';
 import { ChatContactManager } from './ChatContactManager';
 import {
   ChatConnectEventListener,
   ChatCustomEventListener,
+  ChatExceptionEventListener,
   ChatMultiDeviceEventFromNumber,
   ChatMultiDeviceEventListener,
 } from './ChatEvents';
@@ -948,11 +950,37 @@ export class ChatClient extends BaseManager {
   }
 
   /**
-   * 获取聊天管理器类。
+   * Add error listener.
    *
-   * 该方法只能在 Chat 客户端初始化之后调用。
+   * Monitor SDK internal errors.
+   */
+  public addExceptListener(listener: ChatExceptionEventListener): void {
+    chatlog.log(`${ChatClient.TAG}: addExceptListener: `);
+    ExceptionHandler.getInstance().listeners.add(listener);
+  }
+
+  /**
+   * Remove error listener.
+   */
+  public removeExceptListener(listener: ChatExceptionEventListener): void {
+    chatlog.log(`${ChatClient.TAG}: removeExceptListener: `);
+    ExceptionHandler.getInstance().listeners.delete(listener);
+  }
+
+  /**
+   * Remove all error listener.
+   */
+  public removeAllExceptListener(): void {
+    chatlog.log(`${ChatClient.TAG}: removeAllExceptListener: `);
+    ExceptionHandler.getInstance().listeners.clear();
+  }
+
+  /**
+   * Gets the chat manager class.
    *
-   *  @returns 聊天管理器类。
+   * This method can be called only after the chat client is initialized.
+   *
+   * @returns The chat manager class.
    */
   public get chatManager(): ChatManager {
     return this._chatManager;

@@ -1,9 +1,8 @@
 import { ChatClient } from '../ChatClient';
-import type { ChatCursorResult } from './ChatCursorResult';
 import { ChatError } from './ChatError';
 import type {
-  ChatFetchMessageOptions,
   ChatMessage,
+  ChatMessageSearchScope,
   ChatMessageType,
 } from './ChatMessage';
 
@@ -40,9 +39,37 @@ export enum ChatConversationType {
 }
 
 /**
- * 将会话类型由整型转换为枚举类型。
+ * 每种类型的会话标记与其实际含义之间的映射由开发者维护。
  *
- * @param params 整型的会话类型。
+ * 相比会话扩展字段，可以支持搜索。
+ */
+export enum ChatConversationMarkType {
+  Type0,
+  Type1,
+  Type2,
+  Type3,
+  Type4,
+  Type5,
+  Type6,
+  Type7,
+  Type8,
+  Type9,
+  Type10,
+  Type11,
+  Type12,
+  Type13,
+  Type14,
+  Type15,
+  Type16,
+  Type17,
+  Type18,
+  Type19,
+}
+
+/**
+ * 将会话类型从 int 转换为 enum。
+ *
+ * @param params int 类型的会话类型。
  * @returns 枚举类型的会话类型。
  */
 export function ChatConversationTypeFromNumber(
@@ -56,10 +83,7 @@ export function ChatConversationTypeFromNumber(
     case 2:
       return ChatConversationType.RoomChat;
     default:
-      throw new ChatError({
-        code: 1,
-        description: `This type is not supported. ` + params,
-      });
+      return params;
   }
 }
 
@@ -120,6 +144,11 @@ export class ChatConversation {
    */
   pinnedTime?: number;
 
+  /**
+   * 会话标记。
+   */
+  marks?: ChatConversationMarkType[];
+
   constructor(params: {
     convId: string;
     convType: ChatConversationType;
@@ -127,6 +156,7 @@ export class ChatConversation {
     ext?: any;
     isPinned?: boolean;
     pinnedTime?: number;
+    marks?: ChatConversationMarkType[];
   }) {
     this.convId = params.convId;
     this.convType = params.convType;
@@ -134,6 +164,7 @@ export class ChatConversation {
     this.ext = params.ext;
     this.isPinned = params.isPinned ?? false;
     this.pinnedTime = params.pinnedTime ?? 0;
+    this.marks = params.marks;
   }
 
   /**
@@ -184,7 +215,8 @@ export class ChatConversation {
   public async getUnreadCount(): Promise<number> {
     return ChatClient.getInstance().chatManager.getConversationUnreadCount(
       this.convId,
-      this.convType
+      this.convType,
+      this.isChatThread
     );
   }
 
@@ -196,7 +228,8 @@ export class ChatConversation {
   public async getMessageCount(): Promise<number> {
     return ChatClient.getInstance().chatManager.getConversationMessageCount(
       this.convId,
-      this.convType
+      this.convType,
+      this.isChatThread
     );
   }
 
@@ -210,7 +243,8 @@ export class ChatConversation {
   public async getLatestMessage(): Promise<ChatMessage | undefined> {
     return ChatClient.getInstance().chatManager.getLatestMessage(
       this.convId,
-      this.convType
+      this.convType,
+      this.isChatThread
     );
   }
 
@@ -224,7 +258,8 @@ export class ChatConversation {
   public async getLatestReceivedMessage(): Promise<ChatMessage | undefined> {
     return ChatClient.getInstance().chatManager.getLatestReceivedMessage(
       this.convId,
-      this.convType
+      this.convType,
+      this.isChatThread
     );
   }
 
@@ -241,7 +276,8 @@ export class ChatConversation {
     await ChatClient.getInstance().chatManager.setConversationExtension(
       this.convId,
       this.convType,
-      this.ext
+      this.ext,
+      this.isChatThread
     );
     this.ext = ext;
   }
@@ -257,7 +293,8 @@ export class ChatConversation {
     return ChatClient.getInstance().chatManager.markMessageAsRead(
       this.convId,
       this.convType,
-      msgId
+      msgId,
+      this.isChatThread
     );
   }
 
@@ -269,7 +306,8 @@ export class ChatConversation {
   public async markAllMessagesAsRead(): Promise<void> {
     return ChatClient.getInstance().chatManager.markAllMessagesAsRead(
       this.convId,
-      this.convType
+      this.convType,
+      this.isChatThread
     );
   }
 
@@ -295,7 +333,8 @@ export class ChatConversation {
     return ChatClient.getInstance().chatManager.updateConversationMessage(
       this.convId,
       this.convType,
-      msg
+      msg,
+      this.isChatThread
     );
   }
 
@@ -310,7 +349,8 @@ export class ChatConversation {
     return ChatClient.getInstance().chatManager.deleteMessage(
       this.convId,
       this.convType,
-      msgId
+      msgId,
+      this.isChatThread
     );
   }
 
@@ -330,7 +370,8 @@ export class ChatConversation {
     return ChatClient.getInstance().chatManager.deleteMessagesWithTimestamp(
       this.convId,
       this.convType,
-      params
+      params,
+      this.isChatThread
     );
   }
 
@@ -344,7 +385,8 @@ export class ChatConversation {
   public async deleteAllMessages(): Promise<void> {
     return ChatClient.getInstance().chatManager.deleteConversationAllMessages(
       this.convId,
-      this.convType
+      this.convType,
+      this.isChatThread
     );
   }
 
@@ -375,23 +417,65 @@ export class ChatConversation {
       direction,
       timestamp,
       count,
-      sender
+      sender,
+      this.isChatThread
     );
   }
 
   /**
-   * 从本地数据库获取指定会话中一定数量的消息。
+   * 从本地数据库中检索会话中某种类型的消息。
    *
-   * 获取到的消息也会放入到内存中。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
-   * @param startMsgId 开始消息 ID。若该参数设为空或 `null`，SDK 按服务器接收消息时间的倒序加载消息。
-   * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的顺序加载。
-   * @param loadCount 获取的最大消息数量。取值范围为 [1,50]。
-   * @returns 消息列表。若未获取到消息，返回空列表。
+   * @params -
+   * @param msgType 消息类型。 请参阅{@link ChatMessageType}。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param timestamp 用于查询的消息中的起始 Unix 时间戳。 单位是毫秒。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果将此参数设置为负值，则SDK从当前时间开始，按照消息中时间戳的降序顺序检索消息。
+   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
+   * @param sender 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
    *
-   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async getMsgsWithMsgType(params: {
+    msgType: ChatMessageType;
+    direction: ChatSearchDirection;
+    timestamp: number;
+    count: number;
+    sender?: string;
+  }): Promise<Array<ChatMessage>> {
+    return ChatClient.getInstance().chatManager.getMsgsWithMsgType({
+      ...params,
+      convId: this.convId,
+      convType: this.convType,
+      isChatThread: this.isChatThread,
+    });
+  }
+
+  /**
+   * 从本地数据库中检索会话中一定数量的消息。
+   *
+   * **笔记**
+   *
+   * 获取的消息也会加入到内存中存储的会话的现有消息中。
+   *
+   * @param startMsgId 查询的起始消息ID。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果该参数设置为空字符串，则SDK按照消息搜索方向检索消息，而忽略该参数。
+   * - 如果“direction”设置为“ChatSearchDirection.UP”，则 SDK 会按照消息中包含的 Unix 时间戳 ({@link ChatOptions.sortMessageByServerTime}) 的降序顺序从最新消息开始检索消息。
+   * - 如果“direction”设置为“ChatSearchDirection.DOWN”，则 SDK 会按照消息中包含的 Unix 时间戳 ({@link ChatOptions.sortMessageByServerTime}) 的升序从最旧的消息开始检索消息。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳 ({@link ChatOptions.sortMessageByServerTime}) 的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳 ({@link ChatOptions.sortMessageByServerTime}) 的升序检索消息。
+   * @param loadCount 每次检索的最大消息数。 取值范围为[1,400]。
+   * @returns 消息列表（不包括具有开始或结束时间戳的消息列表）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   *
+   * @deprecated 2024-04-17 此方法已弃用。 请改用 {@link getMsgs}。
    */
   public async getMessages(
     startMsgId: string,
@@ -403,23 +487,59 @@ export class ChatConversation {
       this.convType,
       startMsgId,
       direction,
-      loadCount
+      loadCount,
+      this.isChatThread
     );
   }
 
   /**
-   * 从本地数据库获取会话中的指定用户发送的一定数量的特定消息。
+   * 从本地数据库中检索会话中指定数量的消息。
+   *
+   * 检索到的消息也会根据其中包含的时间戳放入内存中的会话中。
+   *
+   * **注意** 如果会话对象不存在，此方法将创建它。
+   *
+   * @params -
+   * @param startMsgId 查询的起始消息ID。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果该参数设置为空字符串，则SDK按照消息搜索方向检索消息，而忽略该参数。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param loadCount 每次检索的最大消息数。 取值范围为[1,50]。
+   *
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async getMsgs(params: {
+    startMsgId: string;
+    direction: ChatSearchDirection;
+    loadCount: number;
+  }): Promise<Array<ChatMessage>> {
+    return ChatClient.getInstance().chatManager.getMsgs({
+      ...params,
+      convId: this.convId,
+      convType: this.convType,
+      isChatThread: this.isChatThread,
+    });
+  }
+
+  /**
+   * 检索本地数据库中会话中带有关键字的消息。
    *
    * @param keywords 查询的关键字。
-   * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link SortMessageByServerTime}) 的顺序加载。
-   * @param timestamp 搜索的开始时间戳。单位为毫秒。
-   * @param count 获取的最大消息数量。取值范围为 [1,50]。
-   * @param sender 消息发送者，该参数也可以在搜索群组消息和聊天室消息时使用。
-   * @returns 消息列表。若未获取到消息，返回空列表。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）“ChatSearchDirection.Up”：按照消息中包含的 Unix 时间戳 ({@link ChatOptions.sortMessageByServerTime}) 的降序顺序检索消息。
+   * - `ChatSearchDirection.Down`：按照消息中包含的 Unix 时间戳 ({@link ChatOptions.sortMessageByServerTime}) 的升序检索消息。
+   * @param timestamp 用于查询的消息中的起始 Unix 时间戳。 单位是毫秒。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果将此参数设置为负值，则 SDK 从当前时间开始，按照消息中包含的 Unix 时间戳 ({@link ChatOptions.sortMessageByServerTime}) 的降序顺序检索消息。
+   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
+   * @param sender 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
    *
-   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   *
+   * @deprecated 2024-04-17 此方法已弃用。 请改用 {@link getMsgsWithKeyword}。
    */
   public async getMessagesWithKeyword(
     keywords: string,
@@ -435,22 +555,63 @@ export class ChatConversation {
       direction,
       timestamp,
       count,
-      sender
+      sender,
+      this.isChatThread
     );
   }
 
   /**
-   * 从本地数据库获取指定会话在一段时间内的消息。
+   * Gets messages that the specified user sends in a conversation in a certain period.
    *
-   * @param startTime 搜索起始时间戳。单位为毫秒。
-   * @param endTime 搜索结束时间戳。单位为毫秒。
-   * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.Up`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.Down`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
-   * @param count 获取的最大消息数量。取值范围为 [1,400]。
-   * @returns 消息列表。若未获取到消息，返回空列表。
+   * This method gets data from the local database.
    *
-   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   * **note** If the conversation object does not exist, this method will create it.
+   *
+   * @params -
+   * - keywords The keywords for query.
+   * - direction The message search direction. See {@link ChatSearchDirection}.
+   * - (Default) `ChatSearchDirection.UP`: Messages are retrieved in the descending order of the Unix timestamp included in them.
+   * - `ChatSearchDirection.DOWN`: Messages are retrieved in the ascending order of the Unix timestamp included in them.
+   * - timestamp The starting Unix timestamp in the message for query. The unit is millisecond. After this parameter is set, the SDK retrieves messages, starting from the specified one, according to the message search direction.
+   * - searchScope The message search scope. See {@link ChatMessageSearchScope}.
+   *                  If you set this parameter as a negative value, the SDK retrieves messages, starting from the current time, in the descending order of the timestamp included in them.
+   * - count The maximum number of messages to retrieve each time. The value range is [1,400].
+   * - sender The user ID or group ID for retrieval. Usually, it is the conversation ID.
+   *
+   * @returns The list of retrieved messages (excluding the one with the starting timestamp). If no message is obtained, an empty list is returned.
+   *
+   * @throws A description of the exception. See {@link ChatError}.
+   */
+  public async getMsgsWithKeyword(params: {
+    keywords: string;
+    direction: ChatSearchDirection;
+    timestamp: number;
+    count: number;
+    sender?: string;
+    searchScope: ChatMessageSearchScope;
+  }): Promise<Array<ChatMessage>> {
+    return ChatClient.getInstance().chatManager.getMsgsWithKeyword({
+      ...params,
+      convId: this.convId,
+      convType: this.convType,
+      isChatThread: this.isChatThread,
+    });
+  }
+
+  /**
+   * 获取本地数据库中某个会话在一定时间内发送和接收的消息。
+   *
+   * @param startTime 搜索的起始 Unix 时间戳。 单位是毫秒。
+   * @param endTime 搜索的结束 Unix 时间戳。 单位是毫秒。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳 ({@link ChatOptions.sortMessageByServerTime}) 的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳 ({@link ChatOptions.sortMessageByServerTime}) 的升序检索消息。
+   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
+   * @returns 检索到的消息列表（不包括具有开始或结束时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   *
+   * @deprecated 2024-04-17 此方法已弃用。 请改用 {@link getMsgWithTimestamp}。
    */
   public async getMessageWithTimestamp(
     startTime: number,
@@ -464,63 +625,48 @@ export class ChatConversation {
       startTime,
       endTime,
       direction,
-      count
+      count,
+      this.isChatThread
     );
   }
 
   /**
-   * 分页获取指定会话的历史消息。
+   * 检索本地数据库中某个会话在一定时间内发送和接收的消息。
    *
-   * @param -
-   * - pageSize: 每页期望返回的消息数量。
-   * - startMsgId: 开始消息 ID。如果该参数为空字符串或 `null`，SDK 按服务器最新接收消息的时间倒序获取。
-   * - direction: 消息搜索方向，详见 {@link ChatSearchDirection}
-   * @returns 获取到的消息和下次查询的 cursor。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @params -
+   * @param startTime 查询的起始 Unix 时间戳，以毫秒为单位。
+   * @param endTime 查询的结束 Unix 时间戳，以毫秒为单位。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
+   *
+   * @returns 检索到的消息列表（不包括具有开始或结束时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
-  public async fetchHistoryMessages(params: {
-    pageSize?: number;
-    startMsgId?: string;
-    direction?: ChatSearchDirection;
-  }): Promise<ChatCursorResult<ChatMessage>> {
-    return ChatClient.getInstance().chatManager.fetchHistoryMessages(
-      this.convId,
-      this.convType,
-      params
-    );
+  public async getMsgWithTimestamp(params: {
+    startTime: number;
+    endTime: number;
+    direction: ChatSearchDirection;
+    count: number;
+  }): Promise<Array<ChatMessage>> {
+    return ChatClient.getInstance().chatManager.getMsgWithTimestamp({
+      ...params,
+      convId: this.convId,
+      convType: this.convType,
+      isChatThread: this.isChatThread,
+    });
   }
 
   /**
-   * 根据消息拉取参数配置从服务器分页获取指定会话的历史消息。
+   * 从会话中删除消息（从本地存储和服务器）。
    *
-   * @params 参数组。
-   * - options: 查询历史消息的参数配置类， 详见 {@link ChatFetchMessageOptions}.
-   * - cursor: 查询的起始游标位置。
-   * - pageSize: 每页期望获取的消息条数。取值范围为 [1,50]。
+   * @param msgIds 要从当前会话中删除的消息的 ID。
    *
-   * @returns 查询到的消息列表和下次查询的 cursor。
-   *
-   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
-   */
-  public async fetchHistoryMessagesByOptions(params?: {
-    options?: ChatFetchMessageOptions;
-    cursor?: string;
-    pageSize?: number;
-  }): Promise<ChatCursorResult<ChatMessage>> {
-    return ChatClient.getInstance().chatManager.fetchHistoryMessagesByOptions(
-      this.convId,
-      this.convType,
-      params
-    );
-  }
-
-  /**
-   * 根据消息 ID 单向删除漫游消息
-   *
-   * @param msgIds 将要删除的消息ID列表。
-   *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async removeMessagesFromServerWithMsgIds(
     msgIds: string[]
@@ -528,16 +674,17 @@ export class ChatConversation {
     return ChatClient.getInstance().chatManager.removeMessagesFromServerWithMsgIds(
       this.convId,
       this.convType,
-      msgIds
+      msgIds,
+      this.isChatThread
     );
   }
 
   /**
-   * 根据消息 时间戳 单向删除漫游消息
+   * 从会话中删除消息（从本地存储和服务器）。
    *
-   * @param timestamp UNIX 时间戳，单位为毫秒。若消息的 UNIX 时间戳小于设置的值，则会被删除。
+   * @param timestamp 消息时间戳（以毫秒为单位）。 时间戳小于指定时间戳的消息将被删除。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async removeMessagesFromServerWithTimestamp(
     timestamp: number
@@ -545,23 +692,91 @@ export class ChatConversation {
     return ChatClient.getInstance().chatManager.removeMessagesFromServerWithTimestamp(
       this.convId,
       this.convType,
-      timestamp
+      timestamp,
+      this.isChatThread
     );
   }
 
   /**
-   * 是否设置会话置顶。
+   * 从本地获取会话中的顶置消息。
    *
-   * @param -
-   * - `true`：是.
-   * - `false`: 否. 
+   * @returns 顶置消息列表。 如果没有获取到消息，则返回空列表。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
-  public async pinConversation(isPinned: boolean): Promise<void> {
-    return ChatClient.getInstance().chatManager.pinConversation(
+  public async getPinnedMessages(): Promise<ChatMessage[]> {
+    return ChatClient.getInstance().chatManager.getPinnedMessages(
       this.convId,
-      isPinned
+      this.convType,
+      this.isChatThread
     );
+  }
+
+  /**
+   * 从服务器获取会话中顶置的消息。
+   *
+   * @returns 顶置消息列表。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async fetchPinnedMessages(): Promise<ChatMessage[]> {
+    return ChatClient.getInstance().chatManager.fetchPinnedMessages(
+      this.convId,
+      this.convType,
+      this.isChatThread
+    );
+  }
+}
+
+/**
+ * 会话对象过滤选项。
+ */
+export class ChatConversationFetchOptions {
+  /**
+   * 会话的页面大小，当使用mark时，取值范围为[1,10]，默认为10。否则，取值范围为[1,50]。
+   */
+  pageSize?: number;
+  /**
+   * 会话的游标。
+   */
+  cursor?: string;
+  /**
+   * 是否已经置顶。
+   */
+  pinned?: boolean;
+  /**
+   * 是否已经标记。
+   */
+  mark?: ChatConversationMarkType;
+  constructor(params: {
+    pageSize?: number;
+    cursor?: string;
+    pinned?: boolean;
+    mark?: ChatConversationMarkType;
+  }) {
+    this.pageSize = params.pageSize;
+    this.cursor = params.cursor;
+    this.pinned = params.pinned;
+    this.mark = params.mark;
+  }
+  static default(): ChatConversationFetchOptions {
+    return new ChatConversationFetchOptions({
+      pageSize: 20,
+      pinned: false,
+    });
+  }
+  static pinned(): ChatConversationFetchOptions {
+    return new ChatConversationFetchOptions({
+      pageSize: 20,
+      pinned: true,
+    });
+  }
+  static withMark(
+    mark: ChatConversationMarkType
+  ): ChatConversationFetchOptions {
+    return new ChatConversationFetchOptions({
+      pageSize: 20,
+      mark: mark,
+    });
   }
 }

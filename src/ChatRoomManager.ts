@@ -34,11 +34,12 @@ import {
   MTunMuteChatRoomMembers,
   MTupdateChatRoomAnnouncement,
 } from './__internal__/Consts';
+import { ExceptionHandler } from './__internal__/ErrorHandler';
 import { Native } from './__internal__/Native';
 import type { ChatRoomEventListener } from './ChatEvents';
 import { chatlog } from './common/ChatConst';
 import { ChatCursorResult } from './common/ChatCursorResult';
-import { ChatError } from './common/ChatError';
+import { ChatException } from './common/ChatError';
 import { ChatPageResult } from './common/ChatPageResult';
 import { ChatRoom } from './common/ChatRoom';
 
@@ -73,10 +74,6 @@ export class ChatRoomManager extends Native {
   private invokeRoomListener(params: any): void {
     this._roomListeners.forEach((listener: ChatRoomEventListener) => {
       const contactEventType = params?.type;
-      if (contactEventType === undefined) {
-        chatlog.warn('invokeRoomListener:invokeRoomListener:', params);
-        return;
-      }
       switch (contactEventType) {
         case 'onChatRoomDestroyed':
           listener.onDestroyed?.({
@@ -184,9 +181,12 @@ export class ChatRoomManager extends Native {
           break;
 
         default:
-          throw new ChatError({
-            code: 1,
-            description: `This type is not supported. ` + contactEventType,
+          ExceptionHandler.getInstance().sendExcept({
+            except: new ChatException({
+              code: 1,
+              description: `This type is not supported. ` + contactEventType,
+            }),
+            from: ChatRoomManager.TAG,
           });
       }
     });

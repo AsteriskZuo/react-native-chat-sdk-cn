@@ -20,3 +20,8 @@ export class ChatError {
     this.description = params.description;
   }
 }
+
+/**
+ * 异常对象，继承自 {@link ChatError}。
+ */
+export class ChatException extends ChatError {}

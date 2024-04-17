@@ -1,7 +1,8 @@
+import { ExceptionHandler } from './__internal__/ErrorHandler';
 import type { ChatConversationType } from './common/ChatConversation';
-import { ChatError } from './common/ChatError';
+import { ChatException } from './common/ChatError';
 import type { ChatGroup, ChatGroupMessageAck } from './common/ChatGroup';
-import type { ChatMessage } from './common/ChatMessage';
+import type { ChatMessage, ChatMessagePinInfo } from './common/ChatMessage';
 import type { ChatMessageReactionEvent } from './common/ChatMessageReaction';
 import type { ChatMessageThreadEvent } from './common/ChatMessageThread';
 import type { ChatPresence } from './common/ChatPresence';
@@ -171,6 +172,10 @@ export enum ChatMultiDeviceEvent {
    * 用户 A 在设备 A1 删除会话，则设备 A2 上会收到该事件。
    */
   CONVERSATION_DELETED = 62,
+  /**
+   * 用户 A 在设备 A1 更新会话标记，则设备 A2 上会收到该事件。
+   */
+  CONVERSATION_UPDATE_MARK,
 }
 
 /**
@@ -265,12 +270,19 @@ export function ChatMultiDeviceEventFromNumber(
       return ChatMultiDeviceEvent.CONVERSATION_UNPINNED;
     case 62:
       return ChatMultiDeviceEvent.CONVERSATION_DELETED;
+    case 63:
+      return ChatMultiDeviceEvent.CONVERSATION_UPDATE_MARK;
 
     default:
-      throw new ChatError({
-        code: 1,
-        description: `This type is not supported. ` + params,
+      const ret = params as ChatMultiDeviceEvent;
+      ExceptionHandler.getInstance().sendExcept({
+        except: new ChatException({
+          code: 1,
+          description: `This type is not supported. ` + params,
+        }),
+        from: 'ChatMultiDeviceEventFromNumber',
       });
+      return ret;
   }
 }
 
@@ -634,6 +646,21 @@ export interface ChatMessageEventListener {
     lastModifyOperatorId: string,
     lastModifyTime: number
   ): void;
+
+  /**
+   * 消息置顶状态变更。
+   * @params params -
+   * - Param [messageId] 消息ID。
+   * - Param [convId] 会话ID。
+   * - Param [pinOperation] 置顶操作类型。默认1.
+   * - Param [pinInfo] 置顶详情。 详见 {@link ChatMessagePinInfo}.
+   */
+  onMessagePinChanged?(params: {
+    messageId: string;
+    convId: string;
+    pinOperation: number;
+    pinInfo: ChatMessagePinInfo;
+  }): void;
 }
 
 /**
@@ -1166,4 +1193,20 @@ export interface ChatPresenceEventListener {
    * @param list 被订阅用户更新后的在线状态。
    */
   onPresenceStatusChanged(list: Array<ChatPresence>): void;
+}
+
+export interface ChatExceptionEventListener {
+  /**
+   * 异常事件监听回调。
+   *
+   * @params -
+   * - Param [except] 异常对象。
+   * - Param [from] 异常来源。
+   * - Param [extra] 额外信息。
+   */
+  onExcept(params: {
+    except: ChatException;
+    from?: string;
+    extra?: Record<string, string>;
+  }): void;
 }

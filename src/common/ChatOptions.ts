@@ -22,18 +22,18 @@ export class ChatOptions {
    */
   debugModel: boolean;
   /**
-   * Global flag for printing logs.
+   * 日志可以带上的标记。区别其它类型的日志。
    */
   logTag?: string;
   /**
-   * Whether to activate the timestamp of the log.
+   * 是否激活日志的时间戳。
    */
   logTimestamp?: boolean;
   /**
-   * Whether to accept friend invitations from other users automatically.
+   * 是否自动接受好友邀请。
    *
-   * - `true`: Yes.
-   * - (Default) `false`: No.
+   * - `true`: 是.
+   * - (Default) `false`: 否.
    */
   acceptInvitationAlways: boolean;
   /**
@@ -137,8 +137,21 @@ export class ChatOptions {
    */
   imPort: number;
   /**
-   * 区域码。
-   * 边缘节点计算会使用。
+   * 是否激活 TLS。默认false。
+   */
+  enableTLS: boolean;
+  /**
+   * 接收消息通知是否包含发送消息。
+   */
+  messagesReceiveCallbackIncludeSend: boolean;
+  /**
+   * 是否将导入的消息视为已读。
+   */
+  regardImportMessagesAsRead: boolean;
+  /**
+   * 区号。
+   * 该属性用于限制可访问边缘节点的范围。 默认值为“GLOB”。 请参阅{@link ChatAreaCode}。
+   * 该属性只有在调用 {@link ChatClient.init} 时才能设置。 在应用程序运行期间无法更改属性设置。
    */
   areaCode: ChatAreaCode;
 
@@ -165,6 +178,13 @@ export class ChatOptions {
    */
   customOSType?: number;
 
+  /**
+   * 服务器是否在文本审核期间向发送者返回文本消息并替换内容。
+   *
+   * 默认为假。
+   */
+  useReplacedMessageContents: boolean;
+
   constructor(params: {
     appKey: string;
     autoLogin?: boolean;
@@ -187,6 +207,15 @@ export class ChatOptions {
     enableEmptyConversation?: boolean;
     customDeviceName?: string;
     customOSType?: number;
+    enableDNSConfig?: boolean;
+    dnsUrl?: string;
+    restServer?: string;
+    imServer?: string;
+    imPort?: number;
+    enableTLS?: boolean;
+    messagesReceiveCallbackIncludeSend?: boolean;
+    regardImportMessagesAsRead?: boolean;
+    useReplacedMessageContents?: boolean;
   }) {
     this.appKey = params.appKey;
     this.autoLogin = params.autoLogin ?? true;
@@ -205,16 +234,24 @@ export class ChatOptions {
     this.serverTransfer = params.serverTransfer ?? true;
     this.isAutoDownload = params.isAutoDownload ?? true;
     this.pushConfig = params.pushConfig;
-    this.enableDNSConfig = true;
-    this.dnsUrl = '';
-    this.restServer = '';
-    this.imServer = '';
-    this.imPort = 0;
+    this.enableDNSConfig =
+      params.enableDNSConfig !== undefined ? params.enableDNSConfig : true;
+    this.dnsUrl = params.dnsUrl ?? '';
+    this.restServer = params.restServer ?? '';
+    this.imServer = params.imServer ?? '';
+    this.imPort = params.imPort !== undefined ? params.imPort : 0;
     this.areaCode = params.areaCode ?? ChatAreaCode.GLOB;
     this.logTag = params.logTag;
     this.logTimestamp = params.logTimestamp;
     this.enableEmptyConversation = params.enableEmptyConversation ?? false;
     this.customDeviceName = params.customDeviceName;
     this.customOSType = params.customOSType;
+    this.enableTLS = params.enableTLS ?? false;
+    this.messagesReceiveCallbackIncludeSend =
+      params.messagesReceiveCallbackIncludeSend ?? false;
+    this.regardImportMessagesAsRead =
+      params.regardImportMessagesAsRead ?? false;
+    this.useReplacedMessageContents =
+      params.useReplacedMessageContents ?? false;
   }
 }

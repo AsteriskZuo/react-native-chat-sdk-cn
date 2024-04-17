@@ -58,7 +58,7 @@ export class ChatMessageReaction {
   /**
    * 添加了指定 Reaction 的用户数量。
    */
-  count: string;
+  count: number;
   /**
    * 当前用户是否添加了该 Reaction。
    * - `Yes`：是。
@@ -71,7 +71,7 @@ export class ChatMessageReaction {
   userList: Array<string>;
   constructor(params: {
     reaction: string;
-    count: string;
+    count: number;
     isAddedBySelf: boolean;
     userList: Array<string>;
   }) {

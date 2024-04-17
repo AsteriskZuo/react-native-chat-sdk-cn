@@ -1,4 +1,4 @@
-import { ChatError } from './ChatError';
+import type { ChatError } from './ChatError';
 
 /**
  * 群组类型枚举。
@@ -61,10 +61,7 @@ export function ChatGroupStyleFromNumber(params: number): ChatGroupStyle {
     case 3:
       return ChatGroupStyle.PublicOpenJoin;
     default:
-      throw new ChatError({
-        code: 1,
-        description: `This type is not supported. ` + params,
-      });
+      return params;
   }
 }
 
@@ -97,10 +94,7 @@ export function ChatGroupPermissionTypeFromNumber(
     case 2:
       return ChatGroupPermissionType.Owner;
     default:
-      throw new ChatError({
-        code: 1,
-        description: `This type is not supported. ` + params,
-      });
+      return params;
   }
 }
 
@@ -302,13 +296,13 @@ export class ChatGroupOptions {
    */
   ext?: string;
   /**
-   * Whether the group is disabled:
-   * - `true`: Yes.
-   * - `false`: No.
+   * 是否禁用群组
+   * - `true`: 是.
+   * - `false`: 否.
    */
   isDisabled: boolean;
   /**
-   * Construct a group option.
+   * 构造一个对象。
    */
   constructor(params: {
     style?: number;

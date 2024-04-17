@@ -6,26 +6,33 @@ import {
   MTackGroupMessageRead,
   MTackMessageRead,
   MTaddReaction,
+  MTaddRemoteAndLocalConversationsMark,
   MTasyncFetchGroupAcks,
   MTclearAllMessages,
   MTcreateChatThread,
+  MTdeleteAllMessageAndConversation,
   MTdeleteConversation,
   MTdeleteMessagesBeforeTimestamp,
   MTdeleteMessagesWithTs,
+  MTdeleteRemoteAndLocalConversationsMark,
   MTdeleteRemoteConversation,
   MTdestroyChatThread,
   MTdownloadAndParseCombineMessage,
   MTdownloadAttachment,
+  MTdownloadAttachmentInCombine,
   MTdownloadThumbnail,
+  MTdownloadThumbnailInCombine,
   MTfetchChatThreadDetail,
   MTfetchChatThreadMember,
   MTfetchChatThreadsWithParentId,
+  MTfetchConversationsByOptions,
   MTfetchConversationsFromServerWithPage,
   MTfetchHistoryMessages,
   MTfetchHistoryMessagesByOptions,
   MTfetchJoinedChatThreads,
   MTfetchJoinedChatThreadsWithParentId,
   MTfetchLastMessageWithChatThreads,
+  MTfetchPinnedMessages,
   MTfetchReactionDetail,
   MTfetchReactionList,
   MTfetchSupportLanguages,
@@ -37,6 +44,7 @@ import {
   MTgetMessage,
   MTgetMessageThread,
   MTgetMsgCount,
+  MTgetPinInfo,
   MTgetPinnedConversationsFromServerWithCursor,
   MTgetReactionList,
   MTgetThreadConversation,
@@ -66,12 +74,15 @@ import {
   MTonConversationUpdate,
   MTonGroupMessageRead,
   MTonMessageContentChanged,
+  MTonMessagePinChanged,
   MTonMessagesDelivered,
   MTonMessagesRead,
   MTonMessagesRecalled,
   MTonMessagesReceived,
   MTonReadAckForGroupMessageUpdated,
   MTpinConversation,
+  MTpinMessage,
+  MTpinnedMessages,
   MTrecallMessage,
   MTremoveMemberFromChatThread,
   MTremoveMessage,
@@ -84,6 +95,7 @@ import {
   MTsendMessage,
   MTsyncConversationExt,
   MTtranslateMessage,
+  MTunpinMessage,
   MTupdateChatMessage,
   MTupdateChatThreadSubject,
   MTupdateConversationMessage,
@@ -94,6 +106,8 @@ import type { ChatMessageEventListener } from './ChatEvents';
 import { chatlog } from './common/ChatConst';
 import {
   ChatConversation,
+  ChatConversationFetchOptions,
+  ChatConversationMarkType,
   ChatConversationType,
   ChatSearchDirection,
 } from './common/ChatConversation';
@@ -105,6 +119,8 @@ import {
   ChatMessage,
   ChatMessageBody,
   ChatMessageChatType,
+  ChatMessagePinInfo,
+  ChatMessageSearchScope,
   ChatMessageStatus,
   ChatMessageStatusCallback,
   ChatMessageType,
@@ -236,71 +252,89 @@ export class ChatManager extends BaseManager {
       MTonMessageContentChanged,
       this.onMessageContentChanged.bind(this)
     );
+    event.removeAllListeners(MTonMessagePinChanged);
+    event.addListener(
+      MTonMessagePinChanged,
+      this.onMessagePinChanged.bind(this)
+    );
+  }
+
+  private filterUnsupportedMessage(messages: ChatMessage[]): ChatMessage[] {
+    return messages.filter((message: ChatMessage) => {
+      return message.body.type !== ('unknown' as ChatMessageType);
+    });
+  }
+
+  private createReceiveMessage(messages: any[]): ChatMessage[] {
+    let list: Array<ChatMessage> = [];
+    messages.forEach((message: any) => {
+      let m = ChatMessage.createReceiveMessage(message);
+      list.push(m);
+    });
+    return this.filterUnsupportedMessage(list);
   }
 
   private onMessagesReceived(messages: any[]): void {
     chatlog.log(`${ChatManager.TAG}: onMessagesReceived: `, messages);
+    if (this._messageListeners.size === 0) {
+      return;
+    }
+    let list: Array<ChatMessage> = this.createReceiveMessage(messages);
     this._messageListeners.forEach((listener: ChatMessageEventListener) => {
-      let list: Array<ChatMessage> = [];
-      messages.forEach((message: any) => {
-        let m = ChatMessage.createReceiveMessage(message);
-        list.push(m);
-      });
       listener.onMessagesReceived?.(list);
     });
   }
   private onCmdMessagesReceived(messages: any[]): void {
     chatlog.log(`${ChatManager.TAG}: onCmdMessagesReceived: `, messages);
+    if (this._messageListeners.size === 0) {
+      return;
+    }
+    let list: Array<ChatMessage> = this.createReceiveMessage(messages);
     this._messageListeners.forEach((listener: ChatMessageEventListener) => {
-      let list: Array<ChatMessage> = [];
-      messages.forEach((message: any) => {
-        let m = ChatMessage.createReceiveMessage(message);
-        list.push(m);
-      });
       listener.onCmdMessagesReceived?.(list);
     });
   }
   private onMessagesRead(messages: any[]): void {
     chatlog.log(`${ChatManager.TAG}: onMessagesRead: `, messages);
+    if (this._messageListeners.size === 0) {
+      return;
+    }
+    let list: Array<ChatMessage> = this.createReceiveMessage(messages);
     this._messageListeners.forEach((listener: ChatMessageEventListener) => {
-      let list: Array<ChatMessage> = [];
-      messages.forEach((message: any) => {
-        let m = ChatMessage.createReceiveMessage(message);
-        list.push(m);
-      });
       listener.onMessagesRead?.(list);
     });
   }
   private onGroupMessageRead(messages: any[]): void {
     chatlog.log(`${ChatManager.TAG}: onGroupMessageRead: `, messages);
+    if (this._messageListeners.size === 0) {
+      return;
+    }
+    let list: Array<ChatGroupMessageAck> = [];
+    messages.forEach((message: any) => {
+      let m = new ChatGroupMessageAck(message);
+      list.push(m);
+    });
     this._messageListeners.forEach((listener: ChatMessageEventListener) => {
-      let list: Array<ChatGroupMessageAck> = [];
-      messages.forEach((message: any) => {
-        let m = new ChatGroupMessageAck(message);
-        list.push(m);
-      });
       listener.onGroupMessageRead?.(messages);
     });
   }
   private onMessagesDelivered(messages: any[]): void {
     chatlog.log(`${ChatManager.TAG}: onMessagesDelivered: `, messages);
+    if (this._messageListeners.size === 0) {
+      return;
+    }
+    let list: Array<ChatMessage> = this.createReceiveMessage(messages);
     this._messageListeners.forEach((listener: ChatMessageEventListener) => {
-      let list: Array<ChatMessage> = [];
-      messages.forEach((message: any) => {
-        let m = ChatMessage.createReceiveMessage(message);
-        list.push(m);
-      });
       listener.onMessagesDelivered?.(list);
     });
   }
   private onMessagesRecalled(messages: any[]): void {
     chatlog.log(`${ChatManager.TAG}: onMessagesRecalled: `, messages);
+    if (this._messageListeners.size === 0) {
+      return;
+    }
+    let list: Array<ChatMessage> = this.createReceiveMessage(messages);
     this._messageListeners.forEach((listener: ChatMessageEventListener) => {
-      let list: Array<ChatMessage> = [];
-      messages.forEach((message: any) => {
-        let m = ChatMessage.createReceiveMessage(message);
-        list.push(m);
-      });
       listener.onMessagesRecalled?.(list);
     });
   }
@@ -331,28 +365,31 @@ export class ChatManager extends BaseManager {
       `${ChatManager.TAG}: onMessageReactionDidChange: `,
       JSON.stringify(params)
     );
-    this._messageListeners.forEach((listener: ChatMessageEventListener) => {
-      const list: Array<ChatMessageReactionEvent> = [];
-      Object.entries(params).forEach((v: [string, any]) => {
-        const convId = v[1].conversationId;
-        const msgId = v[1].messageId;
-        const ll: Array<ChatMessageReaction> = [];
-        Object.entries(v[1].reactions).forEach((vv: [string, any]) => {
-          ll.push(new ChatMessageReaction(vv[1]));
-        });
-        const o: Array<ChatReactionOperation> = [];
-        Object.entries(v[1].operations).forEach((vv: [string, any]) => {
-          o.push(ChatReactionOperation.fromNative(vv[1]));
-        });
-        list.push(
-          new ChatMessageReactionEvent({
-            convId: convId,
-            msgId: msgId,
-            reactions: ll,
-            operations: o,
-          })
-        );
+    if (this._messageListeners.size === 0) {
+      return;
+    }
+    const list: Array<ChatMessageReactionEvent> = [];
+    Object.entries(params).forEach((v: [string, any]) => {
+      const convId = v[1].conversationId;
+      const msgId = v[1].messageId;
+      const ll: Array<ChatMessageReaction> = [];
+      Object.entries(v[1].reactions).forEach((vv: [string, any]) => {
+        ll.push(new ChatMessageReaction(vv[1]));
       });
+      const o: Array<ChatReactionOperation> = [];
+      Object.entries(v[1].operations).forEach((vv: [string, any]) => {
+        o.push(ChatReactionOperation.fromNative(vv[1]));
+      });
+      list.push(
+        new ChatMessageReactionEvent({
+          convId: convId,
+          msgId: msgId,
+          reactions: ll,
+          operations: o,
+        })
+      );
+    });
+    this._messageListeners.forEach((listener: ChatMessageEventListener) => {
       listener.onMessageReactionDidChange?.(list);
     });
   }
@@ -400,6 +437,18 @@ export class ChatManager extends BaseManager {
     });
   }
 
+  private onMessagePinChanged(params: any): void {
+    chatlog.log(`${ChatManager.TAG}: onMessagePinChanged: `, params);
+    this._messageListeners.forEach((listener: ChatMessageEventListener) => {
+      listener.onMessagePinChanged?.({
+        messageId: params.messageId,
+        convId: params.conversationId,
+        pinOperation: params.pinOperation,
+        pinInfo: new ChatMessagePinInfo(params.pinInfo),
+      });
+    });
+  }
+
   private static handleSendMessageCallback(
     self: ChatManager,
     message: ChatMessage,
@@ -440,6 +489,15 @@ export class ChatManager extends BaseManager {
       message,
       callback
     );
+  }
+
+  private static handleDownloadFileCallback(
+    self: ChatManager,
+    message: ChatMessage,
+    method: string,
+    callback?: ChatMessageStatusCallback
+  ): void {
+    ChatManager.handleMessageCallback(method, self, message, callback);
   }
 
   /**
@@ -758,14 +816,81 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 下载消息的附件。
+   * 下载邮件附件。
    *
-   * 若附件自动下载失败，也可以调用此方法下载。
+   * **注意** 该方法仅用于下载组合类型消息或线程类型的消息附件。
    *
-   * @param message 要下载附件的消息。
-   * @param callback 消息状态变化监听器。
+   * **注意** 底层不会获取原始消息对象，会使用json转换后的消息对象。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * 如果附件自动下载失败也可以调用该方法。
+   *
+   * @param message 需要下载附件的消息ID。
+   * @param callback 监听消息变化的监听器。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async downloadAttachmentInCombine(
+    message: ChatMessage,
+    callback?: ChatMessageStatusCallback
+  ): Promise<void> {
+    chatlog.log(
+      `${ChatManager.TAG}: downloadAttachmentInCombine: ${message.msgId}, ${message.localTime}`,
+      message
+    );
+    ChatManager.handleDownloadFileCallback(
+      this,
+      message,
+      MTdownloadAttachmentInCombine,
+      callback
+    );
+    let r: any = await Native._callMethod(MTdownloadAttachmentInCombine, {
+      [MTdownloadAttachmentInCombine]: {
+        message: message,
+      },
+    });
+    Native.checkErrorFromResult(r);
+  }
+
+  /**
+   * 下载消息缩略图。
+   *
+   * **注意** 此方法仅用于下载组合类型消息中的消息缩略图。
+   *
+   * @param message 要下载缩略图的消息ID。 只有图像消息和视频消息有缩略图。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async downloadThumbnailInCombine(
+    message: ChatMessage,
+    callback?: ChatMessageStatusCallback
+  ): Promise<void> {
+    chatlog.log(
+      `${ChatManager.TAG}: downloadThumbnailInCombine: ${message.msgId}, ${message.localTime}`,
+      message
+    );
+    ChatManager.handleDownloadFileCallback(
+      this,
+      message,
+      MTdownloadThumbnailInCombine,
+      callback
+    );
+    let r: any = await Native._callMethod(MTdownloadThumbnailInCombine, {
+      [MTdownloadThumbnailInCombine]: {
+        message: message,
+      },
+    });
+    Native.checkErrorFromResult(r);
+  }
+
+  /**
+   * 下载邮件附件。
+   *
+   * 如果附件自动下载失败也可以调用该方法。
+   *
+   * @param message 需要下载附件的消息ID。
+   * @paramc allback 监听消息变化的监听器。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async downloadAttachment(
     message: ChatMessage,
@@ -1040,31 +1165,36 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 根据会话 ID 和会话类型获取会话。
+   * 根据会话ID和会话类型获取会话。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @param createIfNeed 未找到指定会话时是否创建一个新会话。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param createIfNeed 如果没有找到指定的会话，是否创建会话：
    * - （默认）`true`：是。
-   * - `false`：否。
+   * - `假`：否。
+   * @param isChatThread 会话是否是聊天线程。
+   * - （默认）`false`：否。
+   * - `true`：是的。
    *
-   * @returns 会话。未找到时返回空值。
+   * @returns 检索到的会话对象。 如果未找到会话，SDK 将返回“null”。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async getConversation(
     convId: string,
     convType: ChatConversationType,
-    createIfNeed: boolean = true
+    createIfNeed: boolean = true,
+    isChatThread: boolean = false
   ): Promise<ChatConversation | undefined> {
     chatlog.log(
-      `${ChatManager.TAG}: getConversation: ${convId}, ${convType}, ${createIfNeed}`
+      `${ChatManager.TAG}: getConversation: ${convId}, ${convType}, ${createIfNeed}, ${isChatThread}`
     );
     let r: any = await Native._callMethod(MTgetConversation, {
       [MTgetConversation]: {
         convId: convId,
         convType: convType as number,
         createIfNeed: createIfNeed,
+        isChatThread: isChatThread,
       },
     });
     Native.checkErrorFromResult(r);
@@ -1151,29 +1281,39 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 获取指定会话的最新一条消息。
+   * 从会话中获取最新消息。
    *
-   * 该操作不影响未读消息数量。
+   * **笔记**
    *
-   * SDK 会先从内存中获取。如果没有找到会从本地数据库中获取，并放到内存中。
+   * 该操作不会改变未读消息数。
+   * 如果会话对象不存在，此方法将创建它。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * SDK首先从内存中获取最新消息。 如果没有找到消息，SDK会从本地数据库中加载消息，然后放入内存中。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @returns 获取到的消息。如果没有找到返回 `undefined`。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @returns 消息实例。 如果消息不存在，SDK 将返回“未定义”。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async getLatestMessage(
     convId: string,
-    convType: ChatConversationType
+    convType: ChatConversationType,
+    isChatThread: boolean = false
   ): Promise<ChatMessage | undefined> {
-    chatlog.log(`${ChatManager.TAG}: latestMessage: `, convId, convType);
+    chatlog.log(
+      `${ChatManager.TAG}: latestMessage: `,
+      convId,
+      convType,
+      isChatThread
+    );
     let r: any = await Native._callMethod(MTgetLatestMessage, {
       [MTgetLatestMessage]: {
         convId: convId,
         convType: convType,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -1185,25 +1325,34 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 获取指定会话最新收到的一条消息。
+   * 获取最新收到的会话消息。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @returns 消息实例。如果没有找到返回 `undefined`。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @returns 消息实例。 如果消息不存在，SDK 将返回“未定义”。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async getLatestReceivedMessage(
     convId: string,
-    convType: ChatConversationType
+    convType: ChatConversationType,
+    isChatThread: boolean = false
   ): Promise<ChatMessage | undefined> {
-    chatlog.log(`${ChatManager.TAG}: lastReceivedMessage: `, convId, convType);
+    chatlog.log(
+      `${ChatManager.TAG}: lastReceivedMessage: `,
+      convId,
+      convType,
+      isChatThread
+    );
     let r: any = await Native._callMethod(MTgetLatestMessageFromOthers, {
       [MTgetLatestMessageFromOthers]: {
         convId: convId,
         convType: convType,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -1215,29 +1364,34 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 获取指定会话中的未读消息数。
+   * 获取会话未读消息数。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
+   *
    * @returns 未读消息数。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async getConversationUnreadCount(
     convId: string,
-    convType: ChatConversationType
+    convType: ChatConversationType,
+    isChatThread: boolean = false
   ): Promise<number> {
     chatlog.log(
       `${ChatManager.TAG}: getConversationUnreadCount: `,
       convId,
-      convType
+      convType,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTgetUnreadMsgCount, {
       [MTgetUnreadMsgCount]: {
         convId: convId,
         convType: convType,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -1246,29 +1400,34 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * Gets the message count of the conversation.
+   * 获取会话的消息数。
    *
-   * **note** If the conversation object does not exist, this method will create it.
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
-   * @param convId The conversation ID.
-   * @param convType The conversation type. See {@link ChatConversationType}.
-   * @returns The message count.
+   * @param convId 会话 ID。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws A description of the exception. See {@link ChatError}.
+   * @returns 消息计数。
+   *获取消息计数
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async getConversationMessageCount(
     convId: string,
-    convType: ChatConversationType
+    convType: ChatConversationType,
+    isChatThread: boolean = false
   ): Promise<number> {
     chatlog.log(
       `${ChatManager.TAG}: getConversationMessageCount: `,
       convId,
-      convType
+      convType,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTgetMsgCount, {
       [MTgetMsgCount]: {
         convId: convId,
         convType: convType,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -1277,140 +1436,160 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 将指定消息标为已读。
+   * 将消息标记为已读。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @param msgId 消息ID。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @param msgId 消息 ID。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async markMessageAsRead(
     convId: string,
     convType: ChatConversationType,
-    msgId: string
+    msgId: string,
+    isChatThread: boolean = false
   ): Promise<void> {
     chatlog.log(
       `${ChatManager.TAG}: markMessageAsRead: `,
       convId,
       convType,
-      msgId
+      msgId,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTmarkMessageAsRead, {
       [MTmarkMessageAsRead]: {
         convId: convId,
         convType: convType,
         msg_id: msgId,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
   }
 
   /**
-   * 将所有消息标为已读。
+   * 将所有消息标记为已读。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async markAllMessagesAsRead(
     convId: string,
-    convType: ChatConversationType
+    convType: ChatConversationType,
+    isChatThread: boolean = false
   ): Promise<void> {
     chatlog.log(
       `${ChatManager.TAG}: markAllMessagesAsRead: `,
       convId,
-      convType
+      convType,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTmarkAllMessagesAsRead, {
       [MTmarkAllMessagesAsRead]: {
         convId: convId,
         convType: convType,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
   }
 
   /**
-   * 更新本地数据库的消息。
+   * 更新本地数据库中的消息。
    *
-   * 消息更新后，消息 ID 不会修改，SDK 会自动更新会话的 `latestMessage` 等属性。
+   * 修改消息后，消息 ID 保持不变，SDK 会自动更新会话的属性，如“latestMessage”。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
+   *
    * @param msg 要更新的消息的 ID。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async updateConversationMessage(
     convId: string,
     convType: ChatConversationType,
-    msg: ChatMessage
+    msg: ChatMessage,
+    isChatThread: boolean = false
   ): Promise<void> {
     chatlog.log(
       `${ChatManager.TAG}: updateConversationMessage: `,
       convId,
       convType,
-      msg
+      msg,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTupdateConversationMessage, {
       [MTupdateConversationMessage]: {
         convId: convId,
         convType: convType,
         msg: msg,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
   }
 
   /**
-   * 删除指定消息。
+   * 从本地数据库中删除一条消息。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @param msgId 要删除消息的 ID。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @param msgId 要删除的消息的 ID。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async deleteMessage(
     convId: string,
     convType: ChatConversationType,
-    msgId: string
+    msgId: string,
+    isChatThread: boolean = false
   ): Promise<void> {
     chatlog.log(
-      `${ChatManager.TAG}: deleteMessage: ${convId}, ${convType}, ${msgId}`
+      `${ChatManager.TAG}: deleteMessage: ${convId}, ${convType}, ${msgId}, ${isChatThread}`
     );
     let r: any = await Native._callMethod(MTremoveMessage, {
       [MTremoveMessage]: {
         convId: convId,
         convType: convType,
         msg_id: msgId,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
   }
 
   /**
-   * 从本地数据库中删除指定时间段内的消息。
+   * 从本地数据库中删除一段时间内发送或接收的消息。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}.
-   * @param params -
-   * - startTs: 删除消息的起始时间。Unix 时间戳，单位为毫秒。
-   * - endTs: 删除消息的结束时间。Unix 时间戳，单位为毫秒。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @params 参数
+   * - startTs：消息删除的起始 UNIX 时间戳。 单位是毫秒。
+   * - endTs：消息删除的结束 UNIX 时间戳。 单位是毫秒。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async deleteMessagesWithTimestamp(
     convId: string,
@@ -1418,10 +1597,11 @@ export class ChatManager extends BaseManager {
     params: {
       startTs: number;
       endTs: number;
-    }
+    },
+    isChatThread: boolean = false
   ): Promise<void> {
     chatlog.log(
-      `${ChatManager.TAG}: deleteMessagesWithTimestamp: ${convId}, ${convType}, ${params}`
+      `${ChatManager.TAG}: deleteMessagesWithTimestamp: ${convId}, ${convType}, ${params}, ${isChatThread}`
     );
     let r: any = await Native._callMethod(MTdeleteMessagesWithTs, {
       [MTdeleteMessagesWithTs]: {
@@ -1429,34 +1609,39 @@ export class ChatManager extends BaseManager {
         convType: convType,
         startTs: params.startTs,
         endTs: params.endTs,
+        isChatThread: isChatThread ?? false,
       },
     });
     ChatManager.checkErrorFromResult(r);
   }
 
   /**
-   * 清除内存和数据库中指定会话中的消息。
+   * 从内存和本地数据库中删除会话中的所有消息。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}.
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async deleteConversationAllMessages(
     convId: string,
-    convType: ChatConversationType
+    convType: ChatConversationType,
+    isChatThread: boolean = false
   ): Promise<void> {
     chatlog.log(
       `${ChatManager.TAG}: deleteConversationAllMessages: `,
       convId,
-      convType
+      convType,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTclearAllMessages, {
       [MTclearAllMessages]: {
         convId: convId,
         convType: convType,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -1483,22 +1668,27 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 从本地数据库获取会话中的指定用户发送的某些类型的消息。
+   * 从本地数据库中检索会话中某种类型的消息。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @param msgType 消息类型。详见 {@link ChatMessageType}。
-   * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.UP`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.DOWN`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
-   * @param timestamp 搜索的起始时间戳，单位为毫秒。
-   * @param count 获取的最大消息数量。
-   * @param sender 消息发送方。该参数也可以在搜索群组消息或聊天室消息时使用。
-   * @returns 消息列表。若未获取到，返回空列表。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param msgType 消息类型。 请参阅{@link ChatMessageType}。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param timestamp 用于查询的消息中的起始 Unix 时间戳。 单位是毫秒。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果将此参数设置为负值，则SDK从当前时间开始，按照消息中时间戳的降序顺序检索消息。
+   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
+   * @param sender 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   *
+   * @2023 年 7 月 24 日已弃用。 请改用 {@link getMsgsWithMsgType}。
    */
   public async getMessagesWithMsgType(
     convId: string,
@@ -1507,7 +1697,8 @@ export class ChatManager extends BaseManager {
     direction: ChatSearchDirection = ChatSearchDirection.UP,
     timestamp: number = -1,
     count: number = 20,
-    sender?: string
+    sender?: string,
+    isChatThread: boolean = false
   ): Promise<Array<ChatMessage>> {
     chatlog.log(
       `${ChatManager.TAG}: getMessagesWithMsgType: `,
@@ -1517,7 +1708,8 @@ export class ChatManager extends BaseManager {
       direction,
       timestamp,
       count,
-      sender
+      sender,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTloadMsgWithMsgType, {
       [MTloadMsgWithMsgType]: {
@@ -1528,6 +1720,7 @@ export class ChatManager extends BaseManager {
         timestamp: timestamp,
         count: count,
         sender: sender ?? '',
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -1542,27 +1735,111 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 从本地数据库获取指定会话中一定数量的消息。
+   * 从本地数据库中检索会话中某种类型的消息。
    *
-   * **注意** 获取到的消息也会放入到内存中。
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
+   *
+   * @params -
+   * @param convId 会话 ID。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param msgType 消息类型。 请参阅{@link ChatMessageType}。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param timestamp 用于查询的消息中的起始 Unix 时间戳。 单位是毫秒。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果将此参数设置为负值，则SDK从当前时间开始，按照消息中时间戳的降序顺序检索消息。
+   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
+   * @param sender 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
+   * @param isChatThread 会话是否是聊天线程。
+   *
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async getMsgsWithMsgType(params: {
+    convId: string;
+    convType: ChatConversationType;
+    msgType: ChatMessageType;
+    direction: ChatSearchDirection;
+    timestamp: number;
+    count: number;
+    sender?: string;
+    isChatThread: boolean;
+  }): Promise<Array<ChatMessage>> {
+    const {
+      convId,
+      convType,
+      msgType,
+      direction = ChatSearchDirection.UP,
+      timestamp = -1,
+      count = 20,
+      sender,
+      isChatThread = false,
+    } = params;
+    chatlog.log(
+      `${ChatManager.TAG}: getMsgsWithMsgType: `,
+      convId,
+      convType,
+      msgType,
+      direction,
+      timestamp,
+      count,
+      sender,
+      isChatThread
+    );
+    let r: any = await Native._callMethod(MTloadMsgWithMsgType, {
+      [MTloadMsgWithMsgType]: {
+        convId: convId,
+        convType: convType,
+        msg_type: msgType,
+        direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
+        timestamp: timestamp,
+        count: count,
+        sender: sender ?? '',
+        isChatThread: isChatThread,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    const ret: ChatMessage[] = [];
+    const rr = r?.[MTloadMsgWithMsgType];
+    if (rr) {
+      Object.entries(rr).forEach((value: [string, any]) => {
+        ret.push(new ChatMessage(value[1]));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   * 从本地数据库中检索会话中指定数量的消息。
+   *
+   * 检索到的消息也会根据其中包含的时间戳放入内存中的会话中。
+   *
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @param startMsgId 开始消息 ID。若该参数设为空或 `null`，SDK 按服务器接收消息时间的倒序加载消息。
-   * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.UP`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.DOWN`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
-   * @param loadCount 获取的最大消息数量。取值范围为 [1,400]。
-   * @returns 消息列表。若未获取到消息，返回空列表。
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param startMsgId 查询的起始消息ID。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果该参数设置为空字符串，则SDK按照消息搜索方向检索消息，而忽略该参数。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param loadCount 每次检索的最大消息数。 取值范围为[1,50]。
+   * @param isChatThread 会话是否是聊天线程。
+   *
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   *
+   * @2023 年 7 月 24 日已弃用。 请改用 {@link getMsgs}。
    */
   public async getMessages(
     convId: string,
     convType: ChatConversationType,
     startMsgId: string,
     direction: ChatSearchDirection = ChatSearchDirection.UP,
-    loadCount: number = 20
+    loadCount: number = 20,
+    isChatThread: boolean = false
   ): Promise<Array<ChatMessage>> {
     chatlog.log(
       `${ChatManager.TAG}: getMessages: `,
@@ -1570,7 +1847,8 @@ export class ChatManager extends BaseManager {
       convType,
       startMsgId,
       direction,
-      loadCount
+      loadCount,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTloadMsgWithStartId, {
       [MTloadMsgWithStartId]: {
@@ -1579,6 +1857,7 @@ export class ChatManager extends BaseManager {
         direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
         startId: startMsgId,
         count: loadCount,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -1593,22 +1872,97 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 从本地数据库获取会话中的指定用户在一定时间段内发送的特定消息。
+   * 从本地数据库中检索会话中指定数量的消息。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * 检索到的消息也会根据其中包含的时间戳放入内存中的会话中。
+   *
+   * **注意** 如果会话对象不存在，此方法将创建它。
+   *
+   * @params -
+   * @param convId 会话 ID。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param startMsgId 查询的起始消息ID。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果该参数设置为空字符串，则SDK按照消息搜索方向检索消息，而忽略该参数。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param loadCount 每次检索的最大消息数。 取值范围为[1,50]。
+   * @param isChatThread 会话是否是聊天线程。
+   *
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async getMsgs(params: {
+    convId: string;
+    convType: ChatConversationType;
+    startMsgId: string;
+    direction: ChatSearchDirection;
+    loadCount: number;
+    isChatThread: boolean;
+  }): Promise<Array<ChatMessage>> {
+    const {
+      convId,
+      convType,
+      startMsgId,
+      direction = ChatSearchDirection.UP,
+      loadCount = 20,
+      isChatThread = false,
+    } = params;
+    chatlog.log(
+      `${ChatManager.TAG}: getMsgs: `,
+      convId,
+      convType,
+      startMsgId,
+      direction,
+      loadCount,
+      isChatThread
+    );
+    let r: any = await Native._callMethod(MTloadMsgWithStartId, {
+      [MTloadMsgWithStartId]: {
+        convId: convId,
+        convType: convType,
+        direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
+        startId: startMsgId,
+        count: loadCount,
+        isChatThread: isChatThread,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    const ret: ChatMessage[] = [];
+    const rr = r?.[MTloadMsgWithStartId];
+    if (rr) {
+      Object.entries(rr).forEach((value: [string, any]) => {
+        ret.push(new ChatMessage(value[1]));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   * 获取指定用户在一定时间内的会话中发送的消息。
+   *
+   * 该方法从本地数据库获取数据。
+   *
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
    * @param keywords 查询的关键字。
-   * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.UP`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.DOWN`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
-   * @param timestamp 搜索的开始时间戳，单位为毫秒。
-   * @param count 获取的最大消息数量。取值范围为 [1,400]。
-   * @param sender 消息发送者，该参数也可以在搜索群组消息和聊天室消息时使用。
-   * @returns 消息列表。若未获取到消息，返回空列表。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param timestamp 用于查询的消息中的起始 Unix 时间戳。 单位是毫秒。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果将此参数设置为负值，则SDK从当前时间开始，按照消息中时间戳的降序顺序检索消息。
+   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
+   * @param sender 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   *
+   * @deprecated 2023-07-24 此方法已弃用。 请改用 {@link getMsgsWithKeyword}。
    */
   public async getMessagesWithKeyword(
     convId: string,
@@ -1617,7 +1971,8 @@ export class ChatManager extends BaseManager {
     direction: ChatSearchDirection = ChatSearchDirection.UP,
     timestamp: number = -1,
     count: number = 20,
-    sender?: string
+    sender?: string,
+    isChatThread: boolean = false
   ): Promise<Array<ChatMessage>> {
     chatlog.log(
       `${ChatManager.TAG}: getMessagesWithKeyword: `,
@@ -1627,7 +1982,8 @@ export class ChatManager extends BaseManager {
       direction,
       timestamp,
       count,
-      sender
+      sender,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTloadMsgWithKeywords, {
       [MTloadMsgWithKeywords]: {
@@ -1638,6 +1994,7 @@ export class ChatManager extends BaseManager {
         timestamp: timestamp,
         count: count,
         sender: sender,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -1652,21 +2009,108 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 从本地数据库获取指定会话在一段时间内的消息。
+   * 获取指定用户在一定时间内的会话中发送的消息。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * 该方法从本地数据库获取数据。
+   *
+   * **注意** 如果会话对象不存在，此方法将创建它。
+   *
+   * @params -
+   * - convId 会话 ID。
+   * - convType 会话类型。 请参阅{@link ChatConversationType}。
+   * - keywords 查询的关键字。
+   * - 方向 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * - 时间戳 用于查询的消息中的起始 Unix 时间戳。 单位是毫秒。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
+   * - searchScope 消息搜索范围。 请参阅{@link ChatMessageSearchScope}。
+   * 如果将此参数设置为负值，则SDK从当前时间开始，按照消息中时间戳的降序顺序检索消息。
+   * - count 每次检索的最大消息数。 取值范围为[1,400]。
+   * - 发送者 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
+   * - isChatThread 会话是否是聊天线程。
+   *
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async getMsgsWithKeyword(params: {
+    convId: string;
+    convType: ChatConversationType;
+    keywords: string;
+    direction: ChatSearchDirection;
+    timestamp: number;
+    count: number;
+    sender?: string;
+    searchScope: ChatMessageSearchScope;
+    isChatThread: boolean;
+  }): Promise<Array<ChatMessage>> {
+    const {
+      convId,
+      convType,
+      keywords,
+      direction = ChatSearchDirection.UP,
+      timestamp = -1,
+      count = 20,
+      sender,
+      searchScope = ChatMessageSearchScope.All,
+      isChatThread = false,
+    } = params;
+    chatlog.log(
+      `${ChatManager.TAG}: getMsgsWithKeyword: `,
+      convId,
+      convType,
+      keywords,
+      direction,
+      timestamp,
+      count,
+      searchScope,
+      sender,
+      isChatThread
+    );
+    let r: any = await Native._callMethod(MTloadMsgWithKeywords, {
+      [MTloadMsgWithKeywords]: {
+        convId: convId,
+        convType: convType,
+        keywords: keywords,
+        direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
+        timestamp: timestamp,
+        count: count,
+        sender: sender,
+        searchScope: searchScope,
+        isChatThread: isChatThread,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    const ret: ChatMessage[] = [];
+    const rr = r?.[MTloadMsgWithKeywords];
+    if (rr) {
+      Object.entries(rr).forEach((value: [string, any]) => {
+        ret.push(new ChatMessage(value[1]));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   * 检索本地数据库中某个会话在一定时间内发送和接收的消息。
+   *
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @param startTime 搜索起始时间戳，单位为毫秒。
-   * @param endTime 搜索结束时间戳，单位为毫秒。
-   * @param direction 消息查询方向，详见 {@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.UP`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的倒序加载。
-   * - `ChatSearchDirection.DOWN`：按消息中的时间戳 ({@link sortMessageByServerTime}) 的顺序加载。
-   * @param count 获取的最大消息数量。取值范围为 [1,400]。
-   * @returns 消息列表。若未获取到消息，返回空列表。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param startTime 查询的起始 Unix 时间戳，以毫秒为单位。
+   * @param endTime 查询的结束 Unix 时间戳，以毫秒为单位。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @returns 检索到的消息列表（不包括具有开始或结束时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   *
+   * @deprecated 2023-07-24 此方法已弃用。 请改用 {@link getMsgWithTimestamp}。
    */
   public async getMessageWithTimestamp(
     convId: string,
@@ -1674,7 +2118,8 @@ export class ChatManager extends BaseManager {
     startTime: number,
     endTime: number,
     direction: ChatSearchDirection = ChatSearchDirection.UP,
-    count: number = 20
+    count: number = 20,
+    isChatThread: boolean = false
   ): Promise<Array<ChatMessage>> {
     chatlog.log(
       `${ChatManager.TAG}: getMessageWithTimestamp: `,
@@ -1683,7 +2128,8 @@ export class ChatManager extends BaseManager {
       startTime,
       endTime,
       direction,
-      count
+      count,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTloadMsgWithTime, {
       [MTloadMsgWithTime]: {
@@ -1693,6 +2139,7 @@ export class ChatManager extends BaseManager {
         endTime: endTime,
         direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
         count: count,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -1707,13 +2154,83 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 翻译一条文本消息。
+   * 检索本地数据库中某个会话在一定时间内发送和接收的消息。
+   *
+   * **注意** 如果会话对象不存在，此方法将创建它。
+   *
+   * @params -
+   * @param convId 会话 ID。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param startTime 查询的起始 Unix 时间戳，以毫秒为单位。
+   * @param endTime 查询的结束 Unix 时间戳，以毫秒为单位。
+   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
+   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
+   * @param isChatThread 会话是否是聊天线程。
+   *
+   * @returns 检索到的消息列表（不包括具有开始或结束时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async getMsgWithTimestamp(params: {
+    convId: string;
+    convType: ChatConversationType;
+    startTime: number;
+    endTime: number;
+    direction: ChatSearchDirection;
+    count: number;
+    isChatThread: boolean;
+  }): Promise<Array<ChatMessage>> {
+    const {
+      convId,
+      convType,
+      startTime,
+      endTime,
+      direction = ChatSearchDirection.UP,
+      count = 20,
+      isChatThread = false,
+    } = params;
+    chatlog.log(
+      `${ChatManager.TAG}: getMsgWithTimestamp: `,
+      convId,
+      convType,
+      startTime,
+      endTime,
+      direction,
+      count,
+      isChatThread
+    );
+    let r: any = await Native._callMethod(MTloadMsgWithTime, {
+      [MTloadMsgWithTime]: {
+        convId: convId,
+        convType: convType,
+        startTime: startTime,
+        endTime: endTime,
+        direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
+        count: count,
+        isChatThread: isChatThread,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    const ret: ChatMessage[] = [];
+    const rr = r?.[MTloadMsgWithTime];
+    if (rr) {
+      Object.entries(rr).forEach((value: [string, any]) => {
+        ret.push(new ChatMessage(value[1]));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   * 翻译短信。
    *
    * @param msg 要翻译的文本消息。
    * @param languages 目标语言。
-   * @returns 译文。
+   * @returns 翻译。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async translateMessage(
     msg: ChatMessage,
@@ -1755,32 +2272,37 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 设置会话的扩展属性。
+   * 设置通话的分机信息。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型，详见 {@link ChatConversationType}。
-   * @param ext 扩展信息。可添加自定义扩展信息。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
+   *
+   * @param ext 扩展信息。 该参数必须是key-value类型。
    */
   public async setConversationExtension(
     convId: string,
     convType: ChatConversationType,
     ext: {
       [key: string]: string | number | boolean;
-    }
+    },
+    isChatThread: boolean = false
   ): Promise<void> {
     chatlog.log(
       `${ChatManager.TAG}: setConversationExtension: `,
       convId,
       convType,
-      ext
+      ext,
+      isChatThread
     );
     let r: any = await Native._callMethod(MTsyncConversationExt, {
       [MTsyncConversationExt]: {
         convId: convId,
         convType: convType,
         ext: ext,
+        isChatThread: isChatThread,
       },
     });
     ChatManager.checkErrorFromResult(r);
@@ -2182,7 +2704,7 @@ export class ChatManager extends BaseManager {
     chatThreadId: string,
     cursor: string = '',
     pageSize: number = 20
-  ): Promise<Array<string>> {
+  ): Promise<ChatCursorResult<string>> {
     chatlog.log(
       `${ChatManager.TAG}: fetchMembersWithChatThreadFromServer: `,
       chatThreadId,
@@ -2197,7 +2719,16 @@ export class ChatManager extends BaseManager {
       },
     });
     ChatManager.checkErrorFromResult(r);
-    return r?.[MTfetchChatThreadMember] as Array<string>;
+    let ret = new ChatCursorResult<string>({
+      cursor: r?.[MTfetchChatThreadMember].cursor,
+      list: r?.[MTfetchChatThreadMember].list,
+      opt: {
+        map: (param: any) => {
+          return param;
+        },
+      },
+    });
+    return ret;
   }
 
   /**
@@ -2479,26 +3010,30 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 根据消息 ID 单向删除漫游消息
+   * 从会话中删除消息（从本地存储和服务器）。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
-   * @param convId 会话ID。
+   * @param convId 会话 ID。
    * @param convType 会话类型。
-   * @param msgIds 将要删除的消息ID列表。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   * @param msgIds 要从当前会话中删除的消息的 ID。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async removeMessagesFromServerWithMsgIds(
     convId: string,
     convType: ChatConversationType,
-    msgIds: string[]
+    msgIds: string[],
+    isChatThread: boolean = false
   ): Promise<void> {
     chatlog.log(
       `${ChatManager.TAG}: removeMessagesFromServerWithMsgIds: `,
       convId,
       convType,
-      msgIds
+      msgIds,
+      isChatThread
     );
     if (msgIds.length === 0) {
       // todo: temp fix native
@@ -2521,6 +3056,7 @@ export class ChatManager extends BaseManager {
           convId: convId,
           convType: convType,
           msgIds: msgIds,
+          isChatThread: isChatThread,
         },
       }
     );
@@ -2528,26 +3064,30 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 根据消息 时间戳 单向删除漫游消息
+   * 从会话中删除消息（从本地存储和服务器）。
    *
-   * **注意** 调用该方法，如果会话对象不存在则创建。
+   * **注意** 如果会话对象不存在，此方法将创建它。
    *
-   * @param convId 会话ID。
+   * @param convId 会话 ID。
    * @param convType 会话类型。
-   * @param timestamp UNIX 时间戳，单位为毫秒。若消息的 UNIX 时间戳小于设置的值，则会被删除。
+   * @param isChatThread 会话是否是聊天线程。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   * @param timestamp 消息时间戳（以毫秒为单位）。 时间戳小于指定时间戳的消息将被删除。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
    */
   public async removeMessagesFromServerWithTimestamp(
     convId: string,
     convType: ChatConversationType,
-    timestamp: number
+    timestamp: number,
+    isChatThread: boolean = false
   ): Promise<void> {
     chatlog.log(
       `${ChatManager.TAG}: removeMessagesFromServerWithTimestamp: `,
       convId,
       convType,
-      timestamp
+      timestamp,
+      isChatThread
     );
     if (timestamp <= 0) {
       // todo: temp fix native
@@ -2568,6 +3108,7 @@ export class ChatManager extends BaseManager {
         convId: convId,
         convType: convType,
         timestamp: timestamp,
+        isChatThread: isChatThread,
       },
     });
     Native.checkErrorFromResult(r);
@@ -2758,5 +3299,252 @@ export class ChatManager extends BaseManager {
       });
     }
     return ret;
+  }
+
+  /**
+   * 此方法标记本地和服务器上的会话。
+   *
+   * @param convIds 会话 ID 列表。
+   * @param mark 会话标签。 请参阅{@link ChatConversationMarkType}。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async addRemoteAndLocalConversationsMark(
+    convIds: string[],
+    mark: ChatConversationMarkType
+  ): Promise<void> {
+    chatlog.log(
+      `${ChatManager.TAG}: addRemoteAndLocalConversationsMark: ${convIds}, ${mark}`
+    );
+    let r: any = await Native._callMethod(
+      MTaddRemoteAndLocalConversationsMark,
+      {
+        [MTaddRemoteAndLocalConversationsMark]: {
+          convIds,
+          mark,
+        },
+      }
+    );
+    Native.checkErrorFromResult(r);
+  }
+
+  /**
+   * 他的方法取消本地和服务器上的会话标记。
+   *
+   * @param convIds 会话 ID 列表。
+   * @param mark 会话标签。 请参阅{@link ChatConversationMarkType}。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async deleteRemoteAndLocalConversationsMark(
+    convIds: string[],
+    mark: ChatConversationMarkType
+  ): Promise<void> {
+    chatlog.log(
+      `${ChatManager.TAG}: deleteRemoteAndLocalConversationsMark: ${convIds}, ${mark}`
+    );
+    let r: any = await Native._callMethod(
+      MTdeleteRemoteAndLocalConversationsMark,
+      {
+        [MTdeleteRemoteAndLocalConversationsMark]: {
+          convIds,
+          mark,
+        },
+      }
+    );
+    Native.checkErrorFromResult(r);
+  }
+
+  /**
+   * 按选项获取会话。
+   *
+   * @param option 获取选项。 请参阅{@link ChatConversationFetchOptions}。
+   *
+   * @returns 会话列表结果。 请参阅{@link ChatCursorResult}。
+   */
+  public async fetchConversationsByOptions(
+    option: ChatConversationFetchOptions
+  ): Promise<ChatCursorResult<ChatConversation>> {
+    chatlog.log(`${ChatManager.TAG}: fetchConversationsByOptions: ${option}`);
+    let r: any = await Native._callMethod(MTfetchConversationsByOptions, {
+      [MTfetchConversationsByOptions]: {
+        ...option,
+      },
+    });
+    Native.checkErrorFromResult(r);
+    let ret = new ChatCursorResult<ChatConversation>({
+      cursor: r?.[MTfetchConversationsByOptions].cursor,
+      list: r?.[MTfetchConversationsByOptions].list,
+      opt: {
+        map: (param: any) => {
+          return new ChatConversation(param);
+        },
+      },
+    });
+    return ret;
+  }
+
+  /**
+   * 清除所有会话及其中的所有消息。
+   *
+   * @paramclearServerData 是否清除服务器数据。 默认为 false。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async deleteAllMessageAndConversation(
+    clearServerData: boolean = false
+  ): Promise<void> {
+    chatlog.log(
+      `${ChatManager.TAG}: deleteAllMessageAndConversation: ${clearServerData}`
+    );
+    let r: any = await Native._callMethod(MTdeleteAllMessageAndConversation, {
+      [MTdeleteAllMessageAndConversation]: {
+        clearServerData: clearServerData,
+      },
+    });
+    Native.checkErrorFromResult(r);
+  }
+
+  /**
+   * 顶置消息。
+   *
+   * @param messageId 消息 ID。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async pinMessage(messageId: string): Promise<void> {
+    chatlog.log(`${ChatManager.TAG}: pinMessage: ${messageId}`);
+    let r: any = await Native._callMethod(MTpinMessage, {
+      [MTpinMessage]: {
+        msgId: messageId,
+      },
+    });
+    Native.checkErrorFromResult(r);
+  }
+
+  /**
+   * 取消顶置消息。
+   *
+   * @param messageId 消息 ID。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async unpinMessage(messageId: string): Promise<void> {
+    chatlog.log(`${ChatManager.TAG}: pinMessage: ${messageId}`);
+    let r: any = await Native._callMethod(MTunpinMessage, {
+      [MTunpinMessage]: {
+        msgId: messageId,
+      },
+    });
+    Native.checkErrorFromResult(r);
+  }
+
+  /**
+   * 从服务器获取会话中顶置的消息。
+   *
+   * @param convId 会话 ID。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
+   *
+   * @returns 顶置消息列表。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async fetchPinnedMessages(
+    convId: string,
+    convType: ChatConversationType,
+    isChatThread: boolean = false
+  ): Promise<ChatMessage[]> {
+    chatlog.log(
+      `${ChatManager.TAG}: fetchPinnedMessages:`,
+      convId,
+      convType,
+      isChatThread
+    );
+    let r: any = await Native._callMethod(MTfetchPinnedMessages, {
+      [MTfetchPinnedMessages]: {
+        convId: convId,
+        convType: convType,
+        isChatThread: isChatThread,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    const ret: ChatMessage[] = [];
+    const rr = r?.[MTfetchPinnedMessages] as [];
+    if (rr) {
+      Object.entries(rr).forEach((value: [string, any]) => {
+        ret.push(new ChatMessage(value[1]));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   * 从本地获取会话中的顶置消息。
+   *
+   * @param convId 会话 ID。
+   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param isChatThread 会话是否是聊天线程。
+   *
+   * @returns 顶置消息列表。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async getPinnedMessages(
+    convId: string,
+    convType: ChatConversationType,
+    isChatThread: boolean = false
+  ): Promise<ChatMessage[]> {
+    chatlog.log(
+      `${ChatManager.TAG}: getPinnedMessages:`,
+      convId,
+      convType,
+      isChatThread
+    );
+    let r: any = await Native._callMethod(MTpinnedMessages, {
+      [MTpinnedMessages]: {
+        convId: convId,
+        convType: convType,
+        isChatThread: isChatThread,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    const ret: ChatMessage[] = [];
+    const rr = r?.[MTpinnedMessages] as [];
+    if (rr) {
+      Object.entries(rr).forEach((value: [string, any]) => {
+        ret.push(new ChatMessage(value[1]));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   * 获取会话中顶置的消息。
+   *
+   * @param messageId 消息 ID。
+   * @returns 消息 pin 信息。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async getMessagePinInfo(
+    messageId: string
+  ): Promise<ChatMessagePinInfo | undefined> {
+    chatlog.log(`${ChatManager.TAG}: getMessagePinInfo:`, messageId);
+    let r: any = await Native._callMethod(MTgetPinInfo, {
+      [MTgetPinInfo]: {
+        msgId: messageId,
+      },
+    });
+    try {
+      ChatManager.checkErrorFromResult(r);
+    } catch (error) {
+      chatlog.log(`${ChatManager.TAG}: getMessagePinInfo:`, error);
+      return undefined;
+    }
+    if (r[MTgetPinInfo]) {
+      return new ChatMessagePinInfo(r[MTgetPinInfo]);
+    }
+    return undefined;
   }
 }

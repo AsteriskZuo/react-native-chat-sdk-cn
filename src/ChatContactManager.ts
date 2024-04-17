@@ -20,12 +20,13 @@ import {
   MTremoveUserFromBlockList,
   MTsetContactRemark,
 } from './__internal__/Consts';
+import { ExceptionHandler } from './__internal__/ErrorHandler';
 import { Native } from './__internal__/Native';
 import type { ChatContactEventListener } from './ChatEvents';
 import { chatlog } from './common/ChatConst';
 import { ChatContact } from './common/ChatContact';
 import { ChatCursorResult } from './common/ChatCursorResult';
-import { ChatError } from './common/ChatError';
+import { ChatException } from './common/ChatError';
 
 /**
  * 联系人管理类，用于添加、查询和删除联系人。
@@ -76,9 +77,12 @@ export class ChatContactManager extends BaseManager {
           break;
 
         default:
-          throw new ChatError({
-            code: 1,
-            description: `This type is not supported. ` + contactEventType,
+          ExceptionHandler.getInstance().sendExcept({
+            except: new ChatException({
+              code: 1,
+              description: `This type is not supported. ` + contactEventType,
+            }),
+            from: ChatContactManager.TAG,
           });
       }
     });
@@ -323,7 +327,7 @@ export class ChatContactManager extends BaseManager {
    *
    * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
    */
-  public async getContact(userId: string): Promise<ChatContact> {
+  public async getContact(userId: string): Promise<ChatContact | undefined> {
     chatlog.log(`${ChatContactManager.TAG}: getContact: `);
     let r: any = await Native._callMethod(MTgetContact, {
       [MTgetContact]: {
@@ -331,7 +335,11 @@ export class ChatContactManager extends BaseManager {
       },
     });
     ChatContactManager.checkErrorFromResult(r);
-    return new ChatContact(r?.[MTgetContact]);
+    const g = r?.[MTgetContact];
+    if (g) {
+      return new ChatContact(g);
+    }
+    return undefined;
   }
 
   /**
@@ -366,7 +374,9 @@ export class ChatContactManager extends BaseManager {
     cursor?: string;
     pageSize?: number;
   }): Promise<ChatCursorResult<ChatContact>> {
-    chatlog.log(`${ChatContactManager.TAG}: fetchContacts: `);
+    chatlog.log(
+      `${ChatContactManager.TAG}: fetchContacts: ${params.cursor}, ${params.pageSize}`
+    );
     let r: any = await Native._callMethod(MTfetchContacts, {
       [MTfetchContacts]: {
         cursor: params.cursor,
@@ -394,7 +404,7 @@ export class ChatContactManager extends BaseManager {
    * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
    */
   public async setContactRemark(contact: ChatContact): Promise<void> {
-    chatlog.log(`${ChatContactManager.TAG}: setContactRemark: `);
+    chatlog.log(`${ChatContactManager.TAG}: setContactRemark: ${contact}`);
     let r: any = await Native._callMethod(MTsetContactRemark, {
       [MTsetContactRemark]: {
         userId: contact.userId,

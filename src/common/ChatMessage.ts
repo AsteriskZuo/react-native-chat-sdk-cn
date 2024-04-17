@@ -1,7 +1,8 @@
+import { ExceptionHandler } from '../__internal__/ErrorHandler';
 import { generateMessageId, getNowTimestamp } from '../__internal__/Utils';
 import { ChatClient } from '../ChatClient';
 import type { ChatSearchDirection } from './ChatConversation';
-import { ChatError } from './ChatError';
+import { ChatError, ChatException } from './ChatError';
 import type { ChatMessageReaction } from './ChatMessageReaction';
 import type { ChatMessageThread } from './ChatMessageThread';
 
@@ -88,6 +89,10 @@ export enum ChatMessageType {
   /**
    * 文本消息。
    */
+  // UNKNOWN = 'unknown',
+  /**
+   * Text message.
+   */
   TXT = 'txt',
   /**
    * 图片消息。
@@ -139,6 +144,38 @@ export enum ChatRoomMessagePriority {
    * 低。
    */
   PriorityLow,
+}
+
+/**
+ * 消息置顶选项
+ */
+export enum ChatMessagePinOperation {
+  /**
+   * 置顶状态
+   */
+  Pin,
+  /**
+   * 取消置顶状态
+   */
+  Unpin,
+}
+
+/**
+ * 消息搜索范围。
+ */
+export enum ChatMessageSearchScope {
+  /**
+   * 搜索消息内容
+   */
+  Content,
+  /**
+   * 搜索消息属性
+   */
+  Attribute,
+  /**
+   * 以上两种全部搜索。
+   */
+  All,
 }
 
 /**
@@ -264,10 +301,15 @@ export function ChatMessageTypeFromString(params: string): ChatMessageType {
     case 'combine':
       return ChatMessageType.COMBINE;
     default:
-      throw new ChatError({
-        code: 1,
-        description: `This type is not supported. ` + params,
+      const ret = 'unknown';
+      ExceptionHandler.getInstance().sendExcept({
+        except: new ChatException({
+          code: 1,
+          description: `This type is not supported. ` + params,
+        }),
+        from: 'ChatMessageTypeFromString',
       });
+      return ret as ChatMessageType;
   }
 }
 
@@ -443,6 +485,12 @@ export class ChatMessage {
    * 是否是广播消息。
    */
   isBroadcast: boolean;
+  /**
+   * Whether the message content is replaced.
+   *
+   * It is valid after `ChatOptions.useReplacedMessageContents` is enabled.
+   */
+  isContentReplaced: boolean;
 
   /**
    * 构造消息。
@@ -470,6 +518,7 @@ export class ChatMessage {
     deliverOnlineOnly?: boolean;
     receiverList?: string[];
     isBroadcast?: boolean;
+    isContentReplaced?: boolean;
   }) {
     this.msgId = params.msgId ?? generateMessageId();
     this.conversationId = params.conversationId ?? '';
@@ -494,6 +543,7 @@ export class ChatMessage {
     this.deliverOnlineOnly = params.deliverOnlineOnly ?? false;
     this.receiverList = params.receiverList;
     this.isBroadcast = params.isBroadcast ?? false;
+    this.isContentReplaced = params.isContentReplaced ?? false;
   }
 
   private fromAttributes(attributes: any) {
@@ -552,14 +602,19 @@ export class ChatMessage {
         return new ChatCombineMessageBody(params);
 
       default:
-        throw new ChatError({
-          code: 1,
-          description: `This type is not supported. ` + type,
+        const ret = new _ChatUnknownMessageBody();
+        ExceptionHandler.getInstance().sendExcept({
+          except: new ChatException({
+            code: 1,
+            description: `This type is not supported. ` + type,
+          }),
+          from: 'getBody',
         });
+        return ret;
     }
   }
 
-  private static createSendMessage(params: {
+  public static createSendMessage(params: {
     body: ChatMessageBody;
     targetId: string;
     chatType: ChatMessageChatType;
@@ -1055,7 +1110,14 @@ export class ChatMessage {
   }
 
   /**
-   * 设置聊天室消息优先级。
+   * 获取消息的置顶信息。
+   */
+  public get getPinInfo(): Promise<ChatMessagePinInfo | undefined> {
+    return ChatClient.getInstance().chatManager.getMessagePinInfo(this.msgId);
+  }
+
+  /**
+   * 设置消息优先级。仅仅聊天室生效。
    */
   public set messagePriority(p: ChatRoomMessagePriority) {
     this.priority = p;
@@ -1069,7 +1131,7 @@ export class ChatMessageBody {
   /**
    * 消息类型，详见 {@link ChatMessageType}。
    */
-  type: ChatMessageType;
+  public readonly type: ChatMessageType;
 
   /**
    * 消息最后修改人。
@@ -1138,6 +1200,12 @@ export class ChatTextMessageBody extends ChatMessageBody {
   }
 }
 
+class _ChatUnknownMessageBody extends ChatMessageBody {
+  constructor() {
+    super('unknown' as ChatMessageType);
+  }
+}
+
 /**
  * 位置消息体基类。
  */
@@ -1176,7 +1244,7 @@ export class ChatLocationMessageBody extends ChatMessageBody {
 /**
  * 文件消息体基类。
  */
-export class _ChatFileMessageBody extends ChatMessageBody {
+abstract class _ChatFileMessageBody extends ChatMessageBody {
   /**
    * 文件本地路径。
    */
@@ -1542,7 +1610,26 @@ export class ChatCombineMessageBody extends _ChatFileMessageBody {
 }
 
 /**
- * The parameter configuration class for pulling historical messages from the server.
+ * 消息置顶详情。
+ */
+export class ChatMessagePinInfo {
+  /**
+   * 置顶时间戳。
+   */
+  pinTime: number;
+  /**
+   * 操作者的ID。
+   */
+  operatorId: string;
+
+  constructor(params: { pinTime: number; operatorId: string }) {
+    this.pinTime = params.pinTime;
+    this.operatorId = params.operatorId;
+  }
+}
+
+/**
+ * 查询消息的选项。
  */
 export class ChatFetchMessageOptions {
   /**

@@ -1044,7 +1044,9 @@ export class ChatManager extends BaseManager {
    *                  - `ChatSearchDirection.DOWN`: 按照消息中的时间戳的正序查询。
    * @returns 消息列表（不包含查询起始时间戳对应的消息）。若未查找到任何消息，返回空列表。
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * @throws A description of the exception. See {@link ChatError}.
+   *
+   * @deprecated 2024-04-22. Use {@link getMsgsWithKeyword} instead.
    */
   public async searchMsgFromDB(
     keywords: string,
@@ -1077,16 +1079,72 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 从服务器分页获取群组消息已读回执详情。
+   * Retrieves messages with keywords from the local database.
    *
-   * 发送群组消息已读回执见 {@link {@link #sendConversationReadAck(String)}。
+   * @param keywords The keywords for query.
+   * @param timestamp The starting Unix timestamp in the message for query. The unit is millisecond. After this parameter is set, the SDK retrieves messages, starting from the specified one, according to the message search direction.
+   *                  If you set this parameter as a negative value, the SDK retrieves messages, starting from the current time, in the descending order of the timestamp included in them.
+   * @param maxCount The maximum number of messages to retrieve each time. The value range is [1,400].
+   * @param from The user ID or group ID for retrieval. Usually, it is the conversation ID.
+   * @param direction The message search direction. See {@link ChatSearchDirection}.
+   *                  - (Default) `ChatSearchDirection.Up`: Messages are retrieved in the descending order of the Unix timestamp included in them.
+   *                  - `ChatSearchDirection.Down`: Messages are retrieved in the ascending order of the Unix timestamp included in them.
+   * @returns The list of retrieved messages (excluding the one with the starting timestamp). If no message is obtained, an empty list is returned.
    *
-   * @param msgId 消息 ID。
-   * @param startAckId 开始的已读回执 ID。如果该参数设置为空字符串或 `null`，从服务器接收已读回执时间的倒序开始获取。
-   * @param pageSize 每页期望获取群消息已读回执的条数。
-   * @returns 已读回执列表和用于下次查询的 cursor。
+   * @throws A description of the exception. See {@link ChatError}.
+   */
+  public async getMsgsWithKeyword(params: {
+    keywords: string;
+    timestamp?: number;
+    maxCount?: number;
+    from?: string;
+    direction?: ChatSearchDirection;
+    searchScope?: ChatMessageSearchScope;
+  }): Promise<Array<ChatMessage>> {
+    const {
+      keywords,
+      timestamp = -1,
+      maxCount = 20,
+      from = '',
+      direction = ChatSearchDirection.UP,
+      searchScope = ChatMessageSearchScope.All,
+    } = params;
+    chatlog.log(
+      `${ChatManager.TAG}: searchMsgFromDB: ${keywords}, ${timestamp}, ${maxCount}, ${from}`
+    );
+    let r: any = await Native._callMethod(MTsearchChatMsgFromDB, {
+      [MTsearchChatMsgFromDB]: {
+        keywords: keywords,
+        timeStamp: timestamp,
+        maxCount: maxCount,
+        from: from,
+        direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
+        searchScope: searchScope,
+      },
+    });
+    Native.checkErrorFromResult(r);
+    let ret = new Array<ChatMessage>(0);
+    const rr: Array<any> = r?.[MTsearchChatMsgFromDB];
+    if (rr) {
+      rr.forEach((element) => {
+        ret.push(new ChatMessage(element));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   * Uses the pagination to get read receipts for group messages from the server.
    *
-   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   * For how to send read receipts for group messages, see {@link sendConversationReadAck}.
+   *
+   * @param msgId The message ID.
+   * @param startAckId The starting read receipt ID for query. After this parameter is set, the SDK retrieves read receipts, from the specified one, in the reverse chronological order of when the server receives them.
+   *                   If this parameter is set as `null` or an empty string, the SDK retrieves read receipts, from the latest one, in the reverse chronological order of when the server receives them.
+   * @param pageSize The number of read receipts for the group message that you expect to get on each page. The value range is [1,400].
+   * @returns The list of retrieved read receipts (excluding the one with the starting ID) and the cursor for the next query.
+   *
+   * @throws A description of the exception. See {@link ChatError}.
    */
   public async fetchGroupAcks(
     msgId: string,
@@ -1760,11 +1818,11 @@ export class ChatManager extends BaseManager {
     convId: string;
     convType: ChatConversationType;
     msgType: ChatMessageType;
-    direction: ChatSearchDirection;
-    timestamp: number;
-    count: number;
+    direction?: ChatSearchDirection;
+    timestamp?: number;
+    count?: number;
     sender?: string;
-    isChatThread: boolean;
+    isChatThread?: boolean;
   }): Promise<Array<ChatMessage>> {
     const {
       convId,
@@ -1897,9 +1955,9 @@ export class ChatManager extends BaseManager {
     convId: string;
     convType: ChatConversationType;
     startMsgId: string;
-    direction: ChatSearchDirection;
-    loadCount: number;
-    isChatThread: boolean;
+    direction?: ChatSearchDirection;
+    loadCount?: number;
+    isChatThread?: boolean;
   }): Promise<Array<ChatMessage>> {
     const {
       convId,
@@ -2033,16 +2091,16 @@ export class ChatManager extends BaseManager {
    *
    * @throws 异常的描述。 请参阅{@link ChatError}。
    */
-  public async getMsgsWithKeyword(params: {
+  public async getConvMsgsWithKeyword(params: {
     convId: string;
     convType: ChatConversationType;
     keywords: string;
-    direction: ChatSearchDirection;
-    timestamp: number;
-    count: number;
+    direction?: ChatSearchDirection;
+    timestamp?: number;
+    count?: number;
     sender?: string;
-    searchScope: ChatMessageSearchScope;
-    isChatThread: boolean;
+    searchScope?: ChatMessageSearchScope;
+    isChatThread?: boolean;
   }): Promise<Array<ChatMessage>> {
     const {
       convId,
@@ -2178,9 +2236,9 @@ export class ChatManager extends BaseManager {
     convType: ChatConversationType;
     startTime: number;
     endTime: number;
-    direction: ChatSearchDirection;
-    count: number;
-    isChatThread: boolean;
+    direction?: ChatSearchDirection;
+    count?: number;
+    isChatThread?: boolean;
   }): Promise<Array<ChatMessage>> {
     const {
       convId,

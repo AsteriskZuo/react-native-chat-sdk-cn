@@ -816,7 +816,7 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 下载邮件附件。
+   * 下载消息附件。
    *
    * **注意** 该方法仅用于下载组合类型消息或线程类型的消息附件。
    *
@@ -827,7 +827,7 @@ export class ChatManager extends BaseManager {
    * @param message 需要下载附件的消息ID。
    * @param callback 监听消息变化的监听器。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async downloadAttachmentInCombine(
     message: ChatMessage,
@@ -858,7 +858,7 @@ export class ChatManager extends BaseManager {
    *
    * @param message 要下载缩略图的消息ID。 只有图像消息和视频消息有缩略图。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async downloadThumbnailInCombine(
     message: ChatMessage,
@@ -883,14 +883,14 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 下载邮件附件。
+   * 下载消息附件。
    *
    * 如果附件自动下载失败也可以调用该方法。
    *
    * @param message 需要下载附件的消息ID。
-   * @paramc allback 监听消息变化的监听器。
+   * @param callback 监听消息变化的监听器。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async downloadAttachment(
     message: ChatMessage,
@@ -1044,7 +1044,7 @@ export class ChatManager extends BaseManager {
    *                  - `ChatSearchDirection.DOWN`: 按照消息中的时间戳的正序查询。
    * @returns 消息列表（不包含查询起始时间戳对应的消息）。若未查找到任何消息，返回空列表。
    *
-   * @throws A description of the exception. See {@link ChatError}.
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    *
    * @deprecated 2024-04-22. Use {@link getMsgsWithKeyword} instead.
    */
@@ -1079,19 +1079,26 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * Retrieves messages with keywords from the local database.
+   * 获取所有会话在一定时间内的会话中发送的消息。
    *
-   * @param keywords The keywords for query.
-   * @param timestamp The starting Unix timestamp in the message for query. The unit is millisecond. After this parameter is set, the SDK retrieves messages, starting from the specified one, according to the message search direction.
-   *                  If you set this parameter as a negative value, the SDK retrieves messages, starting from the current time, in the descending order of the timestamp included in them.
-   * @param maxCount The maximum number of messages to retrieve each time. The value range is [1,400].
-   * @param from The user ID or group ID for retrieval. Usually, it is the conversation ID.
-   * @param direction The message search direction. See {@link ChatSearchDirection}.
-   *                  - (Default) `ChatSearchDirection.Up`: Messages are retrieved in the descending order of the Unix timestamp included in them.
-   *                  - `ChatSearchDirection.Down`: Messages are retrieved in the ascending order of the Unix timestamp included in them.
-   * @returns The list of retrieved messages (excluding the one with the starting timestamp). If no message is obtained, an empty list is returned.
+   * 该方法从本地数据库获取数据。
    *
-   * @throws A description of the exception. See {@link ChatError}.
+   * **注意** 如果会话对象不存在，此方法将创建它。
+   *
+   * @params -
+   * - keywords 查询的关键字。
+   * - direction 消息搜索方向。请参阅 {@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP` 按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN` 按照消息中包含的 Unix 时间戳的升序检索消息。
+   * - timestamp 用于查询的消息中的起始 Unix 时间戳。单位是毫秒。设置该参数后，SDK 按照消息搜索方向，从指定的消息开始检索消息。
+   *   如果将此参数设置为负值，则 SDK 从当前时间开始，按照消息中时间戳的降序顺序检索消息。
+   * - searchScope 消息搜索范围。请参阅 {@link ChatMessageSearchScope}。
+   * - maxCount 每次检索的最大消息数。取值范围为 [1,400]。
+   * - from 用于检索的用户 ID 或群组 ID。
+   *
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。如果没有获取到消息，返回空列表。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getMsgsWithKeyword(params: {
     keywords: string;
@@ -1136,15 +1143,14 @@ export class ChatManager extends BaseManager {
   /**
    * Uses the pagination to get read receipts for group messages from the server.
    *
-   * For how to send read receipts for group messages, see {@link sendConversationReadAck}.
+   * 发送群组消息已读回执见 {@link {@link #sendConversationReadAck(String)}。
    *
-   * @param msgId The message ID.
-   * @param startAckId The starting read receipt ID for query. After this parameter is set, the SDK retrieves read receipts, from the specified one, in the reverse chronological order of when the server receives them.
-   *                   If this parameter is set as `null` or an empty string, the SDK retrieves read receipts, from the latest one, in the reverse chronological order of when the server receives them.
-   * @param pageSize The number of read receipts for the group message that you expect to get on each page. The value range is [1,400].
-   * @returns The list of retrieved read receipts (excluding the one with the starting ID) and the cursor for the next query.
+   * @param msgId 消息 ID。
+   * @param startAckId 开始的已读回执 ID。如果该参数设置为空字符串或 `null`，从服务器接收已读回执时间的倒序开始获取。
+   * @param pageSize 每页期望获取群消息已读回执的条数。
+   * @returns 已读回执列表和用于下次查询的 cursor。
    *
-   * @throws A description of the exception. See {@link ChatError}.
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    */
   public async fetchGroupAcks(
     msgId: string,
@@ -1230,13 +1236,13 @@ export class ChatManager extends BaseManager {
    * @param createIfNeed 如果没有找到指定的会话，是否创建会话：
    * - （默认）`true`：是。
    * - `假`：否。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    * - （默认）`false`：否。
    * - `true`：是的。
    *
    * @returns 检索到的会话对象。 如果未找到会话，SDK 将返回“null”。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getConversation(
     convId: string,
@@ -1289,8 +1295,6 @@ export class ChatManager extends BaseManager {
   /**
    * 从服务器获取会话列表。
    *
-   * 该功能需联系商务开通。开通后，用户默认可拉取 7 天内的 10 个会话（每个会话包含最新一条历史消息）。如需调整会话数量或时间限制请联系商务经理。
-   *
    * @returns 会话列表。
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
@@ -1341,7 +1345,7 @@ export class ChatManager extends BaseManager {
   /**
    * 从会话中获取最新消息。
    *
-   * **笔记**
+   * **注意**
    *
    * 该操作不会改变未读消息数。
    * 如果会话对象不存在，此方法将创建它。
@@ -1350,11 +1354,11 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
-   * @returns 消息实例。 如果消息不存在，SDK 将返回“未定义”。
+   * @returns 消息实例。 如果消息不存在，SDK 将返回 `undefined`。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getLatestMessage(
     convId: string,
@@ -1389,11 +1393,11 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
-   * @returns 消息实例。 如果消息不存在，SDK 将返回“未定义”。
+   * @returns 消息实例。 如果消息不存在，SDK 将返回 `undefined`。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getLatestReceivedMessage(
     convId: string,
@@ -1428,11 +1432,11 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @returns 未读消息数。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getConversationUnreadCount(
     convId: string,
@@ -1464,11 +1468,11 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @returns 消息计数。
    *获取消息计数
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getConversationMessageCount(
     convId: string,
@@ -1500,11 +1504,11 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @param msgId 消息 ID。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async markMessageAsRead(
     convId: string,
@@ -1537,9 +1541,9 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async markAllMessagesAsRead(
     convId: string,
@@ -1571,11 +1575,11 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @param msg 要更新的消息的 ID。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async updateConversationMessage(
     convId: string,
@@ -1608,11 +1612,11 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @param msgId 要删除的消息的 ID。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async deleteMessage(
     convId: string,
@@ -1641,13 +1645,13 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @params 参数
    * - startTs：消息删除的起始 UNIX 时间戳。 单位是毫秒。
    * - endTs：消息删除的结束 UNIX 时间戳。 单位是毫秒。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async deleteMessagesWithTimestamp(
     convId: string,
@@ -1680,9 +1684,9 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async deleteConversationAllMessages(
     convId: string,
@@ -1740,11 +1744,11 @@ export class ChatManager extends BaseManager {
    * 如果将此参数设置为负值，则SDK从当前时间开始，按照消息中时间戳的降序顺序检索消息。
    * @param count 每次检索的最大消息数。 取值范围为[1,400]。
    * @param sender 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    *
    * @2023 年 7 月 24 日已弃用。 请改用 {@link getMsgsWithMsgType}。
    */
@@ -1808,11 +1812,11 @@ export class ChatManager extends BaseManager {
    * 如果将此参数设置为负值，则SDK从当前时间开始，按照消息中时间戳的降序顺序检索消息。
    * @param count 每次检索的最大消息数。 取值范围为[1,400]。
    * @param sender 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getMsgsWithMsgType(params: {
     convId: string;
@@ -1883,11 +1887,11 @@ export class ChatManager extends BaseManager {
    * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
    * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
    * @param loadCount 每次检索的最大消息数。 取值范围为[1,50]。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    *
    * @2023 年 7 月 24 日已弃用。 请改用 {@link getMsgs}。
    */
@@ -1945,11 +1949,11 @@ export class ChatManager extends BaseManager {
    * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
    * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
    * @param loadCount 每次检索的最大消息数。 取值范围为[1,50]。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
-   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。如果没有获取到消息，则返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getMsgs(params: {
     convId: string;
@@ -2005,20 +2009,20 @@ export class ChatManager extends BaseManager {
    * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
+   * @param convType 会话类型。请参阅 {@link ChatConversationType}。
    * @param keywords 查询的关键字。
-   * @param Direction 消息搜索方向。 请参阅{@link ChatSearchDirection}。
+   * @param Direction 消息搜索方向。请参阅 {@link ChatSearchDirection}。
    * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
    * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
-   * @param timestamp 用于查询的消息中的起始 Unix 时间戳。 单位是毫秒。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
-   * 如果将此参数设置为负值，则SDK从当前时间开始，按照消息中时间戳的降序顺序检索消息。
-   * @param count 每次检索的最大消息数。 取值范围为[1,400]。
-   * @param sender 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param timestamp 用于查询的消息中的起始 Unix 时间戳。单位是毫秒。设置该参数后，SDK 按照消息搜索方向，从指定的消息开始检索消息。
+   * 如果将此参数设置为负值，则 SDK 从当前时间开始，按照消息中时间戳的降序顺序检索消息。
+   * @param count 每次检索的最大消息数。取值范围为 [1,400]。
+   * @param sender 用于检索的用户 ID 或群组 ID。
+   * @param isChatThread 会话是否是子区会话。
    *
-   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。如果没有获取到消息，则返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    *
    * @deprecated 2023-07-24 此方法已弃用。 请改用 {@link getMsgsWithKeyword}。
    */
@@ -2075,21 +2079,21 @@ export class ChatManager extends BaseManager {
    *
    * @params -
    * - convId 会话 ID。
-   * - convType 会话类型。 请参阅{@link ChatConversationType}。
+   * - convType 会话类型。请参阅 {@link ChatConversationType}。
    * - keywords 查询的关键字。
-   * - 方向 消息搜索方向。 请参阅{@link ChatSearchDirection}。
-   * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
-   * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
-   * - 时间戳 用于查询的消息中的起始 Unix 时间戳。 单位是毫秒。 设置该参数后，SDK按照消息搜索方向，从指定的消息开始检索消息。
-   * - searchScope 消息搜索范围。 请参阅{@link ChatMessageSearchScope}。
-   * 如果将此参数设置为负值，则SDK从当前时间开始，按照消息中时间戳的降序顺序检索消息。
-   * - count 每次检索的最大消息数。 取值范围为[1,400]。
-   * - 发送者 用于检索的用户 ID 或组 ID。 通常，它是会话 ID。
-   * - isChatThread 会话是否是聊天线程。
+   * - direction 消息搜索方向。请参阅 {@link ChatSearchDirection}。
+   * - （默认）`ChatSearchDirection.UP` 按照消息中包含的 Unix 时间戳的降序检索消息。
+   * - `ChatSearchDirection.DOWN` 按照消息中包含的 Unix 时间戳的升序检索消息。
+   * - timestamp 用于查询的消息中的起始 Unix 时间戳。单位是毫秒。设置该参数后，SDK 按照消息搜索方向，从指定的消息开始检索消息。
+   *   如果将此参数设置为负值，则 SDK 从当前时间开始，按照消息中时间戳的降序顺序检索消息。
+   * - searchScope 消息搜索范围。请参阅 {@link ChatMessageSearchScope}。
+   * - count 每次检索的最大消息数。取值范围为 [1,400]。
+   * - sender 用于检索的用户 ID 或群组 ID。
+   * - isChatThread 会话是否为子区会话。
    *
-   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
+   * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。如果没有获取到消息，返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getConvMsgsWithKeyword(params: {
     convId: string;
@@ -2162,11 +2166,11 @@ export class ChatManager extends BaseManager {
    * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
    * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
    * @param count 每次检索的最大消息数。 取值范围为[1,400]。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @returns 检索到的消息列表（不包括具有开始或结束时间戳的消息）。 如果没有获取到消息，则返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    *
    * @deprecated 2023-07-24 此方法已弃用。 请改用 {@link getMsgWithTimestamp}。
    */
@@ -2225,11 +2229,11 @@ export class ChatManager extends BaseManager {
    * - （默认）`ChatSearchDirection.UP`：按照消息中包含的 Unix 时间戳的降序检索消息。
    * - `ChatSearchDirection.DOWN`：按照消息中包含的 Unix 时间戳的升序检索消息。
    * @param count 每次检索的最大消息数。 取值范围为[1,400]。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @returns 检索到的消息列表（不包括具有开始或结束时间戳的消息）。 如果没有获取到消息，则返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getMsgWithTimestamp(params: {
     convId: string;
@@ -2282,13 +2286,13 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 翻译短信。
+   * 翻译消息。
    *
    * @param msg 要翻译的文本消息。
    * @param languages 目标语言。
    * @returns 翻译。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async translateMessage(
     msg: ChatMessage,
@@ -2330,13 +2334,13 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 设置通话的分机信息。
+   * 设置会话的扩展信息。
    *
    * **注意** 如果会话对象不存在，此方法将创建它。
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @param ext 扩展信息。 该参数必须是key-value类型。
    */
@@ -2372,7 +2376,7 @@ export class ChatManager extends BaseManager {
    * @param reaction Reaction 的内容。
    * @param msgId 要添加 Reaction 的消息 ID。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async addReaction(reaction: string, msgId: string): Promise<void> {
     chatlog.log(`${ChatManager.TAG}: addReaction: `, reaction, msgId);
@@ -2391,7 +2395,7 @@ export class ChatManager extends BaseManager {
    * @param reaction 要删除的 Reaction。
    * @param msgId 添加了该 Reaction 的消息 ID。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async removeReaction(reaction: string, msgId: string): Promise<void> {
     chatlog.log(`${ChatManager.TAG}: removeReaction: `, reaction, msgId);
@@ -2412,7 +2416,7 @@ export class ChatManager extends BaseManager {
    * @param chatType 会话类型。
    * @returns 若调用成功，返回 Reaction 列表；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchReactionList(
     msgIds: Array<string>,
@@ -2454,7 +2458,7 @@ export class ChatManager extends BaseManager {
    * @returns 若调用成功，返回 Reaction 详情。若返回 `null`，则所有数据均获取。
    *          若调用失败，则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchReactionDetail(
     msgId: string,
@@ -2497,7 +2501,7 @@ export class ChatManager extends BaseManager {
    * @param tag 非法消息的标签。你需要填写自定义标签，例如`涉政`或`广告`。
    * @param reason 举报原因。你需要自行填写举报原因。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async reportMessage(
     msgId: string,
@@ -2521,7 +2525,7 @@ export class ChatManager extends BaseManager {
    * @param msgId 消息 ID。
    * @returns 若调用成功，则返回 Reaction 列表；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getReactionList(
     msgId: string
@@ -2534,9 +2538,11 @@ export class ChatManager extends BaseManager {
     });
     ChatManager.checkErrorFromResult(r);
     const ret: Array<ChatMessageReaction> = [];
-    Object.entries(r?.[MTgetReactionList]).forEach((value: [string, any]) => {
-      ret.push(new ChatMessageReaction(value[1]));
-    });
+    if (r?.[MTgetReactionList]) {
+      Object.entries(r?.[MTgetReactionList]).forEach((value: [string, any]) => {
+        ret.push(new ChatMessageReaction(value[1]));
+      });
+    }
     return ret;
   }
 
@@ -2546,9 +2552,9 @@ export class ChatManager extends BaseManager {
    * @param msgId 消息 ID。
    * @returns 若调用成功，返回群组消息的已读人数；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
-  public async groupAckCount(msgId: string): Promise<number> {
+  public async groupAckCount(msgId: string): Promise<number | undefined> {
     chatlog.log(`${ChatManager.TAG}: groupAckCount: `, msgId);
     let r: any = await Native._callMethod(MTgroupAckCount, {
       [MTgroupAckCount]: {
@@ -2556,7 +2562,10 @@ export class ChatManager extends BaseManager {
       },
     });
     ChatManager.checkErrorFromResult(r);
-    return r?.[MTgroupAckCount] as number;
+    if (r?.[MTgroupAckCount] !== undefined) {
+      return r?.[MTgroupAckCount] as number;
+    }
+    return undefined;
   }
 
   /**
@@ -2577,7 +2586,7 @@ export class ChatManager extends BaseManager {
    * @param parentId 父 ID，即群组 ID。
    * @returns 调用成功时，返回创建的子区对象；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async createChatThread(
     name: string,
@@ -2615,7 +2624,7 @@ export class ChatManager extends BaseManager {
    * @param chatThreadId 子区 ID。
    * @returns 若调用成功，返回子区详情 {@link ChatMessageThread}；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async joinChatThread(
     chatThreadId: string
@@ -2643,7 +2652,7 @@ export class ChatManager extends BaseManager {
    *
    * @param chatThreadId 要退出的子区的 ID。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async leaveChatThread(chatThreadId: string): Promise<void> {
     chatlog.log(`${ChatManager.TAG}: leaveChatThread: `, chatThreadId);
@@ -2670,7 +2679,7 @@ export class ChatManager extends BaseManager {
    *
    * @param chatThreadId 子区 ID。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async destroyChatThread(chatThreadId: string): Promise<void> {
     chatlog.log(`${ChatManager.TAG}: destroyChatThread: `, chatThreadId);
@@ -2694,7 +2703,7 @@ export class ChatManager extends BaseManager {
    * @param chatThreadId  子区 ID。
    * @param newName 子区的新名称。长度不超过 64 个字符。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async updateChatThreadName(
     chatThreadId: string,
@@ -2726,7 +2735,7 @@ export class ChatManager extends BaseManager {
    * @param chatThreadId 子区 ID。
    * @param memberId 被移出子区的成员的用户 ID。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async removeMemberWithChatThread(
     chatThreadId: string,
@@ -2756,7 +2765,7 @@ export class ChatManager extends BaseManager {
    * @param pageSize 每页期望返回的成员数。取值范围为 [1,400]。
    * @returns 若调用成功，返回子区成员列表；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchMembersWithChatThreadFromServer(
     chatThreadId: string,
@@ -2796,7 +2805,7 @@ export class ChatManager extends BaseManager {
    * @param pageSize 每页期望返回的子区数。取值范围为 [1,400]。
    * @returns 若调用成功，返回子区列表；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchJoinedChatThreadFromServer(
     cursor: string = '',
@@ -2834,7 +2843,7 @@ export class ChatManager extends BaseManager {
    * @param pageSize 每页期望返回的子区数。取值范围为 [1,400]。
    * @returns 若调用成功，返回子区列表；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchJoinedChatThreadWithParentFromServer(
     parentId: string,
@@ -2878,7 +2887,7 @@ export class ChatManager extends BaseManager {
    * @param pageSize 每页期望返回的子区数。取值范围为 [1,400]。
    * @returns 若调用成功，返回子区列表；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchChatThreadWithParentFromServer(
     parentId: string,
@@ -2917,7 +2926,7 @@ export class ChatManager extends BaseManager {
    * @param chatThreadIds 要查询的子区 ID 列表，每次最多可传 20 个子区。
    * @returns 若调用成功，返回子区的最新一条消息列表；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchLastMessageWithChatThread(
     chatThreadIds: Array<string>
@@ -2947,7 +2956,7 @@ export class ChatManager extends BaseManager {
    * @param chatThreadId 子区 ID。
    * @returns 若调用成功，返回子区详情；失败则抛出异常。
    *
-   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchChatThreadFromServer(
     chatThreadId: string
@@ -3074,11 +3083,11 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
    * @param msgIds 要从当前会话中删除的消息的 ID。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async removeMessagesFromServerWithMsgIds(
     convId: string,
@@ -3128,11 +3137,11 @@ export class ChatManager extends BaseManager {
    *
    * @param convId 会话 ID。
    * @param convType 会话类型。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param isChatThread 会话是否为子区会话。
    *
-   * @param timestamp 消息时间戳（以毫秒为单位）。 时间戳小于指定时间戳的消息将被删除。
+   * @param timestamp 消息时间戳（以毫秒为单位）。时间戳小于指定时间戳的消息将被删除。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async removeMessagesFromServerWithTimestamp(
     convId: string,
@@ -3224,7 +3233,7 @@ export class ChatManager extends BaseManager {
    * @param cursor: 查询数据起始位置。如果为空字符串或者 `undefined`，SDK 从最新置顶的会话开始查询。
    * @param pageSize: 请求最大会话数量。范围 [1，50]。
    *
-   * @returns 会话列表。
+   * @returns 置顶的会话列表。
    *
    * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
@@ -3261,7 +3270,7 @@ export class ChatManager extends BaseManager {
    * 设置会话是否置顶。
    *
    * @param convId 会话 ID.
-   * @param isPinned 是否置顶。
+   * @param isPinned 是否置顶会话。
    *  - `true`：置顶；
    * 	- `false`: 取消置顶。
    *
@@ -3360,12 +3369,14 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 此方法标记本地和服务器上的会话。
+   * 标记会话。
+   *
+   * 调用该方法会同时为本地和服务器端的会话添加标记。
    *
    * @param convIds 会话 ID 列表。
-   * @param mark 会话标签。 请参阅{@link ChatConversationMarkType}。
+   * @param mark 要添加的会话标记。请参阅{@link ChatConversationMarkType}。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async addRemoteAndLocalConversationsMark(
     convIds: string[],
@@ -3387,12 +3398,14 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 他的方法取消本地和服务器上的会话标记。
+   *  取消标记会话。
+   *
+   *  调用该方法会同时为本地和服务器端的会话添加标记。
    *
    * @param convIds 会话 ID 列表。
-   * @param mark 会话标签。 请参阅{@link ChatConversationMarkType}。
+   * @param mark 要移除的会话标记。请参阅 {@link ChatConversationMarkType}。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async deleteRemoteAndLocalConversationsMark(
     convIds: string[],
@@ -3414,11 +3427,11 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 按选项获取会话。
+   * 按会话过滤选项从服务端获取会话。
    *
-   * @param option 获取选项。 请参阅{@link ChatConversationFetchOptions}。
+   * @param option 会话过滤选项。请参阅 {@link ChatConversationFetchOptions}。
    *
-   * @returns 会话列表结果。 请参阅{@link ChatCursorResult}。
+   * @returns 获取的会话列表。请参阅 {@link ChatCursorResult}。
    */
   public async fetchConversationsByOptions(
     option: ChatConversationFetchOptions
@@ -3443,11 +3456,13 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 清除所有会话及其中的所有消息。
+   * 清空所有会话及其消息。
    *
-   * @paramclearServerData 是否清除服务器数据。 默认为 false。
+   * @param clearServerData 是否删除服务端所有会话及其消息：
+   *                       - true：是。服务端的所有会话及其消息会被清除，当前用户无法再从服务端拉取消息和会话，其他用户不受影响。
+   *                       - （默认）false：否。只清除本地所有会话及其消息，服务端的会话及其消息仍保留。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async deleteAllMessageAndConversation(
     clearServerData: boolean = false
@@ -3464,11 +3479,11 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 顶置消息。
+   * 置顶消息。
    *
    * @param messageId 消息 ID。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async pinMessage(messageId: string): Promise<void> {
     chatlog.log(`${ChatManager.TAG}: pinMessage: ${messageId}`);
@@ -3481,11 +3496,11 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 取消顶置消息。
+   * 取消置顶消息。
    *
    * @param messageId 消息 ID。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async unpinMessage(messageId: string): Promise<void> {
     chatlog.log(`${ChatManager.TAG}: pinMessage: ${messageId}`);
@@ -3498,15 +3513,15 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 从服务器获取会话中顶置的消息。
+   * 从服务端获取指定会话中的置顶消息。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param convType 会话类型。请参阅 {@link ChatConversationType}。
+   * @param isChatThread 会话是否为子区会话。
    *
-   * @returns 顶置消息列表。 如果没有获取到消息，则返回空列表。
+   * @returns 置顶消息列表。如果没有获取到消息，则返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async fetchPinnedMessages(
     convId: string,
@@ -3538,15 +3553,15 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 从本地获取会话中的顶置消息。
+   * 从本地获取指定会话中的置顶消息。
    *
    * @param convId 会话 ID。
-   * @param convType 会话类型。 请参阅{@link ChatConversationType}。
-   * @param isChatThread 会话是否是聊天线程。
+   * @param convType 会话类型。请参阅 {@link ChatConversationType}。
+   * @param isChatThread 会话是否为子区会话。
    *
-   * @returns 顶置消息列表。 如果没有获取到消息，则返回空列表。
+   * @returns 置顶消息列表。如果没有获取到消息，则返回空列表。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getPinnedMessages(
     convId: string,
@@ -3578,12 +3593,12 @@ export class ChatManager extends BaseManager {
   }
 
   /**
-   * 获取会话中顶置的消息。
+   * 获取单条消息的置顶详情。
    *
    * @param messageId 消息 ID。
-   * @returns 消息 pin 信息。 如果没有获取到消息，则返回空列表。
+   * @returns 消息的置顶详情。若消息不存在或为非置顶状态，返回 `undefined`。
    *
-   * @throws 异常的描述。 请参阅{@link ChatError}。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
    */
   public async getMessagePinInfo(
     messageId: string
@@ -3594,13 +3609,8 @@ export class ChatManager extends BaseManager {
         msgId: messageId,
       },
     });
-    try {
-      ChatManager.checkErrorFromResult(r);
-    } catch (error) {
-      chatlog.log(`${ChatManager.TAG}: getMessagePinInfo:`, error);
-      return undefined;
-    }
-    if (r[MTgetPinInfo]) {
+    ChatManager.checkErrorFromResult(r);
+    if (r?.[MTgetPinInfo]) {
       return new ChatMessagePinInfo(r[MTgetPinInfo]);
     }
     return undefined;

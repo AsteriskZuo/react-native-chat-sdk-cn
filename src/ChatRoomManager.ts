@@ -85,6 +85,7 @@ export class ChatRoomManager extends Native {
           listener.onMemberJoined?.({
             roomId: params.roomId,
             participant: params.participant,
+            ext: params.ext,
           });
           break;
         case 'onMemberExited':
@@ -234,6 +235,32 @@ export class ChatRoomManager extends Native {
     let r: any = await Native._callMethod(MTjoinChatRoom, {
       [MTjoinChatRoom]: {
         roomId: roomId,
+      },
+    });
+    ChatRoomManager.checkErrorFromResult(r);
+  }
+
+  /**
+   * 加入聊天室。
+   *
+   * 退出聊天室见： {@link leaveChatRoom}。
+   *
+   * @params - 参数集合
+   * @param roomId 要加入的聊天室的 ID。
+   * @param exitOtherRoom 是否退出其他聊天室。
+   * @param ext 扩展信息。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async joinChatRoomEx(params: {
+    roomId: string;
+    exitOtherRoom?: boolean;
+    ext?: string;
+  }): Promise<void> {
+    chatlog.log(`${ChatRoomManager.TAG}: joinChatRoomEx: ${params}`);
+    let r: any = await Native._callMethod(MTjoinChatRoom, {
+      [MTjoinChatRoom]: {
+        ...params,
       },
     });
     ChatRoomManager.checkErrorFromResult(r);

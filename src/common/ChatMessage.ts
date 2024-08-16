@@ -1674,3 +1674,37 @@ export class ChatFetchMessageOptions {
     this.msgTypes = params.msgTypes;
   }
 }
+
+export class ChatRecalledMessageInfo {
+  /**
+   * 撤销的消息ID。
+   */
+  recalledMessageId: string;
+  /**
+   * 撤销的消息对象。
+   */
+  recalledMessage?: ChatMessage;
+  /**
+   * 撤销操作者的ID。
+   */
+  recalledBy: string;
+  /**
+   * 撤销消息的扩展信息。
+   */
+  recalledExt?: string;
+
+  /**
+   * 创建撤销消息对象。
+   */
+  constructor(params: {
+    recalledMessageId: string;
+    recalledMessage?: ChatMessage;
+    recalledBy: string;
+    recalledExt?: string;
+  }) {
+    this.recalledMessageId = params.recalledMessageId;
+    this.recalledMessage = params.recalledMessage;
+    this.recalledBy = params.recalledBy;
+    this.recalledExt = params.recalledExt;
+  }
+}

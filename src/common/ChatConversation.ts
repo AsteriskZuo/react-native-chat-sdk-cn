@@ -5,6 +5,7 @@ import type {
   ChatMessageSearchScope,
   ChatMessageType,
 } from './ChatMessage';
+import { ChatPushRemindType } from './ChatSilentMode';
 
 /**
  * 消息搜索方向枚举。
@@ -150,6 +151,11 @@ export class ChatConversation {
    */
   marks?: ChatConversationMarkType[];
 
+  /**
+   * 会话提醒类型
+   */
+  remindType?: ChatPushRemindType;
+
   constructor(params: {
     convId: string;
     convType: ChatConversationType;
@@ -158,6 +164,7 @@ export class ChatConversation {
     isPinned?: boolean;
     pinnedTime?: number;
     marks?: ChatConversationMarkType[];
+    remindType?: ChatPushRemindType;
   }) {
     this.convId = params.convId;
     this.convType = params.convType;
@@ -166,6 +173,7 @@ export class ChatConversation {
     this.isPinned = params.isPinned ?? false;
     this.pinnedTime = params.pinnedTime ?? 0;
     this.marks = params.marks;
+    this.remindType = params.remindType ?? ChatPushRemindType.ALL;
   }
 
   /**
@@ -232,6 +240,28 @@ export class ChatConversation {
       this.convType,
       this.isChatThread
     );
+  }
+
+  /**
+   * 获取会话的消息数目。
+   *
+   * @param start: 起始时间点
+   * @param end: 结束时间点
+   *
+   * @returns 消息数目
+   * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
+   */
+  public async getMessageCountWithTimestamp(
+    start: number,
+    end: number
+  ): Promise<number> {
+    return ChatClient.getInstance().chatManager.getMessageCountWithTimestamp({
+      start: start,
+      end: end,
+      convId: this.convId,
+      convType: this.convType,
+      isChatThread: this.isChatThread,
+    });
   }
 
   /**
@@ -725,6 +755,53 @@ export class ChatConversation {
       this.convType,
       this.isChatThread
     );
+  }
+
+  /**
+   * 搜索本地消息。
+   *
+   * @params - 参数集合
+   * - msgTypes: 消息类型的数组。 详见 {@link ChatMessageType}.
+   * - timestamp: 时间点。
+   * - count: 搜索的最大消息数。
+   * - from: 消息的发送者。
+   * - direction: 搜索方向。 详见 {@link ChatSearchDirection}.
+   *
+   * @returns 消息列表。 如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async searchMessages(params: {
+    msgTypes: ChatMessageType[];
+    timestamp: number;
+    count?: number;
+    from?: string;
+    direction?: ChatSearchDirection;
+  }): Promise<ChatMessage[]> {
+    return ChatClient.getInstance().chatManager.searchMessagesInConversation({
+      ...params,
+      convId: this.convId,
+      convType: this.convType,
+      isChatThread: this.isChatThread,
+    });
+  }
+
+  /**
+   * 移除本地和服务器的消息。和该聊天会话相关的所有消息都将被删除。会话中的其他人的服务器端消息不受影响。不会删除。
+   * @param params - 参数集合
+   * - timestamp: 该时间点之前的消息将被删除。
+   *
+   * @throws 异常的描述。 请参阅{@link ChatError}。
+   */
+  public async removeMessagesWithTimestamp(params: {
+    timestamp: number;
+  }): Promise<void> {
+    return ChatClient.getInstance().chatManager.removeMessagesWithTimestamp({
+      ...params,
+      convId: this.convId,
+      convType: this.convType,
+      isChatThread: this.isChatThread,
+    });
   }
 }
 

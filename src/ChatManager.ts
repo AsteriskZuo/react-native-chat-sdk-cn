@@ -42,6 +42,7 @@ import {
   MTgetLatestMessage,
   MTgetLatestMessageFromOthers,
   MTgetMessage,
+  MTgetMessageCountWithTimestamp,
   MTgetMessageThread,
   MTgetMsgCount,
   MTgetPinInfo,
@@ -78,6 +79,7 @@ import {
   MTonMessagesDelivered,
   MTonMessagesRead,
   MTonMessagesRecalled,
+  MTonMessagesRecalledInfo,
   MTonMessagesReceived,
   MTonReadAckForGroupMessageUpdated,
   MTpinConversation,
@@ -88,10 +90,13 @@ import {
   MTremoveMessage,
   MTremoveMessagesFromServerWithMsgIds,
   MTremoveMessagesFromServerWithTs,
+  MTremoveMessagesWithTimestamp,
   MTremoveReaction,
   MTreportMessage,
   MTresendMessage,
   MTsearchChatMsgFromDB,
+  MTsearchMessages,
+  MTsearchMessagesInConversation,
   MTsendMessage,
   MTsyncConversationExt,
   MTtranslateMessage,
@@ -124,6 +129,7 @@ import {
   ChatMessageStatus,
   ChatMessageStatusCallback,
   ChatMessageType,
+  ChatRecalledMessageInfo,
 } from './common/ChatMessage';
 import {
   ChatMessageReaction,
@@ -206,6 +212,11 @@ export class ChatManager extends BaseManager {
     );
     event.removeAllListeners(MTonMessagesRecalled);
     event.addListener(MTonMessagesRecalled, this.onMessagesRecalled.bind(this));
+    event.removeAllListeners(MTonMessagesRecalledInfo);
+    event.addListener(
+      MTonMessagesRecalledInfo,
+      this.onMessagesRecalledInfo.bind(this)
+    );
     event.removeAllListeners(MTonConversationUpdate);
     event.addListener(
       MTonConversationUpdate,
@@ -274,6 +285,22 @@ export class ChatManager extends BaseManager {
     return this.filterUnsupportedMessage(list);
   }
 
+  private createReceiveRecallMessage(params: any[]): ChatRecalledMessageInfo[] {
+    let list: Array<ChatRecalledMessageInfo> = [];
+    params.forEach((param: any) => {
+      const m = new ChatRecalledMessageInfo({
+        recalledMessage: param.recalledMessage
+          ? ChatMessage.createReceiveMessage(param.recalledMessage)
+          : undefined,
+        recalledBy: param.recalledBy,
+        recalledExt: param.recalledExt,
+        recalledMessageId: param.recalledMessageId,
+      });
+      list.push(m);
+    });
+    return list;
+  }
+
   private onMessagesReceived(messages: any[]): void {
     chatlog.log(`${ChatManager.TAG}: onMessagesReceived: `, messages);
     if (this._messageListeners.size === 0) {
@@ -336,6 +363,17 @@ export class ChatManager extends BaseManager {
     let list: Array<ChatMessage> = this.createReceiveMessage(messages);
     this._messageListeners.forEach((listener: ChatMessageEventListener) => {
       listener.onMessagesRecalled?.(list);
+    });
+  }
+  private onMessagesRecalledInfo(params: any[]): void {
+    chatlog.log(`${ChatManager.TAG}: onMessagesRecalledInfo: `, params);
+    if (this._messageListeners.size === 0) {
+      return;
+    }
+    let list: Array<ChatRecalledMessageInfo> =
+      this.createReceiveRecallMessage(params);
+    this._messageListeners.forEach((listener: ChatMessageEventListener) => {
+      listener.onMessagesRecalledInfo?.(list);
     });
   }
   private onConversationsUpdate(): void {
@@ -686,15 +724,21 @@ export class ChatManager extends BaseManager {
   /**
    * 撤回发送成功的消息。
    *
-   * @param msgId 消息 ID。
+   * @params - 参数集合
+   * - msgId 消息 ID。
+   * - ext 扩展信息。
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
    */
-  public async recallMessage(msgId: string): Promise<void> {
+  public async recallMessage(
+    msgId: string,
+    option?: { ext?: string }
+  ): Promise<void> {
     chatlog.log(`${ChatManager.TAG}: recallMessage: ${msgId}`);
     let r: any = await Native._callMethod(MTrecallMessage, {
       [MTrecallMessage]: {
         msg_id: msgId,
+        ext: option?.ext,
       },
     });
     Native.checkErrorFromResult(r);
@@ -3614,5 +3658,162 @@ export class ChatManager extends BaseManager {
       return new ChatMessagePinInfo(r[MTgetPinInfo]);
     }
     return undefined;
+  }
+
+  /**
+   * 搜索消息。
+   *
+   * @params - 参数集合
+   * - msgTypes: 消息类型数组，用户搜索一个或者多个类型的消息。 详见 {@link ChatMessageType}.
+   * - timestamp: 搜索的时间戳。
+   * - count: 搜索的消息数量。取值范围为 [1,100]。默认值为 20。
+   * - from: 搜索的消息 ID。
+   * - direction: 搜索方向。 详见 {@link ChatSearchDirection}.
+   * - isChatThread: 是否是子区会话。
+   *
+   * @returns 符合搜索条件的消息列表。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}。
+   */
+  public async searchMessages(params: {
+    msgTypes: ChatMessageType[];
+    timestamp: number;
+    count?: number;
+    from?: string;
+    direction?: ChatSearchDirection;
+    isChatThread?: boolean;
+  }): Promise<ChatMessage[]> {
+    chatlog.log(`${ChatManager.TAG}: searchMessages:`, params);
+    const { direction = ChatSearchDirection.UP } = params;
+    let r: any = await Native._callMethod(MTsearchMessages, {
+      [MTsearchMessages]: {
+        types: params.msgTypes,
+        timestamp: params.timestamp,
+        count: params.count ?? 20,
+        from: params.from,
+        direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
+        isChatThread: params.isChatThread,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    const nativeReturn = r?.[MTsearchMessages];
+    const ret: ChatMessage[] = [];
+    if (nativeReturn) {
+      Object.entries(nativeReturn).forEach((value: [string, any]) => {
+        ret.push(new ChatMessage(value[1]));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   * 搜索指定会话的消息。
+   *
+   * @params - 消息集合
+   * - convId: 会话 ID。
+   * - convType: 会话类型。 详见 {@link ChatConversationType}.
+   * - msgTypes: 消息类型数组，用户搜索一个或者多个类型的消息。 详见 {@link ChatMessageType}.
+   * - timestamp: 搜索的时间戳。
+   * - count: 搜索的消息数量。取值范围为 [1,100]。默认值为 20。
+   * - from: 搜索的消息 ID。
+   * - direction: 搜索方向。 详见 {@link ChatSearchDirection}.
+   * - isChatThread: 是否是子区会话。
+   *
+   * @returns 符合搜索条件的消息列表。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   */
+  public async searchMessagesInConversation(params: {
+    convId: string;
+    convType: ChatConversationType;
+    msgTypes: ChatMessageType[];
+    timestamp: number;
+    count?: number;
+    from?: string;
+    direction?: ChatSearchDirection;
+    isChatThread?: boolean;
+  }): Promise<ChatMessage[]> {
+    chatlog.log(`${ChatManager.TAG}: searchMessagesInConversation:`, params);
+    const { direction = ChatSearchDirection.UP } = params;
+    let r: any = await Native._callMethod(MTsearchMessagesInConversation, {
+      [MTsearchMessagesInConversation]: {
+        convId: params.convId,
+        convType: params.convType,
+        types: params.msgTypes,
+        timestamp: params.timestamp,
+        count: params.count ?? 20,
+        from: params.from,
+        direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
+        isChatThread: params.isChatThread,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    const nativeReturn = r?.[MTsearchMessagesInConversation];
+    const ret: ChatMessage[] = [];
+    if (nativeReturn) {
+      Object.entries(nativeReturn).forEach((value: [string, any]) => {
+        ret.push(new ChatMessage(value[1]));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   * 从本地和服务器端删除指定会话的消息。
+   *
+   * @params 参数集合 -
+   * - convId: 会话 ID。
+   * - convType: 会话类型。详见 {@link ChatConversationType}。
+   * - timestamp: 消息时间戳（以毫秒为单位）。时间戳小于指定时间戳的消息将被删除。
+   * - isChatThread: 是否是子区会话。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   */
+  public async removeMessagesWithTimestamp(params: {
+    convId: string;
+    convType: ChatConversationType;
+    timestamp: number;
+    isChatThread?: boolean;
+  }): Promise<void> {
+    chatlog.log(`${ChatManager.TAG}: removeMessagesWithTimestamp:`, params);
+    let r: any = await Native._callMethod(MTremoveMessagesWithTimestamp, {
+      [MTremoveMessagesWithTimestamp]: {
+        convId: params.convId,
+        convType: params.convType,
+        timestamp: params.timestamp,
+        isChatThread: params.isChatThread,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+  }
+
+  /**
+   * 获取消息数量。
+   *
+   * @params - 参数集合
+   * - convId: 会话 ID。
+   * - convType: 会话类型。详见 {@link ChatConversationType}。
+   * - isChatThread: 是否是子区会话。
+   * - start: 开始时间戳。
+   * - end: 结束时间戳。
+   *
+   * @returns 指定时间范围内的消息数量。
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   */
+  public async getMessageCountWithTimestamp(params: {
+    convId: string;
+    convType: ChatConversationType;
+    start: number;
+    end: number;
+    isChatThread?: boolean;
+  }): Promise<number> {
+    chatlog.log(`${ChatManager.TAG}: getMessageCountWithTimestamp:`, params);
+    let r: any = await Native._callMethod(MTgetMessageCountWithTimestamp, {
+      [MTgetMessageCountWithTimestamp]: {
+        ...params,
+      },
+    });
+    ChatManager.checkErrorFromResult(r);
+    return r?.[MTgetMessageCountWithTimestamp];
   }
 }

@@ -190,6 +190,13 @@ export class ChatOptions {
    */
   useReplacedMessageContents: boolean;
 
+  /**
+   * 是否在登录时传递额外的登录信息给服务器。
+   *
+   * 该属性用于在登录时传递额外的登录信息给服务器，例如，登录时传递设备信息。
+   */
+  loginExtraInfo?: string;
+
   constructor(params: {
     appKey: string;
     autoLogin?: boolean;
@@ -221,6 +228,7 @@ export class ChatOptions {
     messagesReceiveCallbackIncludeSend?: boolean;
     regardImportMessagesAsRead?: boolean;
     useReplacedMessageContents?: boolean;
+    loginExtraInfo?: string;
   }) {
     this.appKey = params.appKey;
     this.autoLogin = params.autoLogin ?? true;
@@ -258,5 +266,6 @@ export class ChatOptions {
       params.regardImportMessagesAsRead ?? false;
     this.useReplacedMessageContents =
       params.useReplacedMessageContents ?? false;
+    this.loginExtraInfo = params.loginExtraInfo;
   }
 }

@@ -2,7 +2,11 @@ import { ExceptionHandler } from './__internal__/ErrorHandler';
 import type { ChatConversationType } from './common/ChatConversation';
 import { ChatException } from './common/ChatError';
 import type { ChatGroup, ChatGroupMessageAck } from './common/ChatGroup';
-import type { ChatMessage, ChatMessagePinInfo } from './common/ChatMessage';
+import type {
+  ChatMessage,
+  ChatMessagePinInfo,
+  ChatRecalledMessageInfo,
+} from './common/ChatMessage';
 import type { ChatMessageReactionEvent } from './common/ChatMessageReaction';
 import type { ChatMessageThreadEvent } from './common/ChatMessageThread';
 import type { ChatPresence } from './common/ChatPresence';
@@ -132,10 +136,13 @@ export enum ChatMultiDeviceEvent {
    */
   GROUP_REMOVE_ALL_BAN,
   /**
-   * 用户 A 在设备 A1 上修改群组成员属性，则设备 A2 上会收到该事件。
+   * The current user are group disable on another device.
    */
-  GROUP_METADATA_CHANGED,
-
+  GROUP_DISABLED,
+  /**
+   * The current user are group able on another device.
+   */
+  GROUP_ABLE,
   /**
    * 用户 A 在设备 A1 上创建了子区，则设备 A2 上会收到该事件。
    */
@@ -161,6 +168,10 @@ export enum ChatMultiDeviceEvent {
    */
   THREAD_KICK,
   /**
+   * 用户 A 在设备 A1 上修改群组成员属性，则设备 A2 上会收到该事件。
+   */
+  GROUP_METADATA_CHANGED = 52,
+  /**
    * 用户 A 在设备 A1 置顶会话，则设备 A2 上会收到该事件。
    */
   CONVERSATION_PINNED = 60,
@@ -175,7 +186,13 @@ export enum ChatMultiDeviceEvent {
   /**
    * 用户 A 在设备 A1 更新会话标记，则设备 A2 上会收到该事件。
    */
-  CONVERSATION_UPDATE_MARK,
+  CONVERSATION_UPDATE_MARK = 63,
+  /**
+   * 用户 A 在设备 A1 更新会话免打扰状态，则设备 A2 上会收到该事件。
+   *
+   * 系统内部会更新会话的推送提醒方式。如果需要则需要手动更新会话列表。
+   */
+  CONVERSATION_MUTE_CHANGED = 64,
 }
 
 /**
@@ -247,6 +264,10 @@ export function ChatMultiDeviceEventFromNumber(
       return ChatMultiDeviceEvent.GROUP_ALL_BAN;
     case 33:
       return ChatMultiDeviceEvent.GROUP_REMOVE_ALL_BAN;
+    case 34:
+      return ChatMultiDeviceEvent.GROUP_DISABLED;
+    case 35:
+      return ChatMultiDeviceEvent.GROUP_ABLE;
 
     case 40:
       return ChatMultiDeviceEvent.THREAD_CREATE;
@@ -272,6 +293,8 @@ export function ChatMultiDeviceEventFromNumber(
       return ChatMultiDeviceEvent.CONVERSATION_DELETED;
     case 63:
       return ChatMultiDeviceEvent.CONVERSATION_UPDATE_MARK;
+    case 64:
+      return ChatMultiDeviceEvent.CONVERSATION_MUTE_CHANGED;
 
     default:
       const ret = params as ChatMultiDeviceEvent;
@@ -361,6 +384,21 @@ export interface ChatConnectEventListener {
    * 服务器主动断开连接。
    */
   onUserDidLoginFromOtherDevice?(deviceName?: string): void;
+
+  /**
+   * 用户在其它设备登录。
+   *
+   * 当前用户被服务器断开。
+   *
+   * @params -
+   * - Param [deviceName] 设备名称。
+   * - Param [ext] 设备扩展信息。 详见 {@link ChatOptions.loginExtraInfo}.
+   *
+   */
+  onUserDidLoginFromOtherDeviceWithInfo?(params: {
+    deviceName: string;
+    ext?: string;
+  }): void;
 
   /**
    * 用户被移除通知。
@@ -574,6 +612,13 @@ export interface ChatMessageEventListener {
    * @param messages 撤回的消息。
    */
   onMessagesRecalled?(messages: Array<ChatMessage>): void;
+
+  /**
+   * 收到消息撤销通知的回调。
+   *
+   * @param params 撤销消息的信息。
+   */
+  onMessagesRecalledInfo?(info: Array<ChatRecalledMessageInfo>): void;
 
   /**
    * 会话更新事件回调。
@@ -1029,7 +1074,11 @@ export interface ChatRoomEventListener {
    * - Param [roomId] 聊天室 ID。
    * - Param [participant] 新成员用户 ID。
    */
-  onMemberJoined?(params: { roomId: string; participant: string }): void;
+  onMemberJoined?(params: {
+    roomId: string;
+    participant: string;
+    ext?: string;
+  }): void;
   /**
    * 聊天室成员主动退出回调。
    *

@@ -441,7 +441,7 @@ export class ChatMessage {
 
   /**
    * 消息是否为子区消息：
-   * 
+   *
    * - `true`：是。你需将消息接收方的用户 ID 设置为子区 ID。详见 {@link to}。
    * - `false`：否。
    *
@@ -463,6 +463,7 @@ export class ChatMessage {
    * 聊天室消息的优先级。
    * **Note** 该属性仅适用于聊天室会话。
    */
+  // @ts-expect-error
   private priority?: ChatRoomMessagePriority;
 
   /**
@@ -744,6 +745,7 @@ export class ChatMessage {
    *  - width: 图片宽度。
    *  - height: 图片高度。
    *  - fileSize: 图片大小。
+   *  - receiverList: 消息接收人列表。
    *
    * @returns 消息实例。
    */
@@ -802,6 +804,7 @@ export class ChatMessage {
    *  - width: 视频宽度。
    *  - height: 视频高度。
    *  - fileSize: 文件大小。
+   *  - receiverList: 消息接收人列表。
    *
    * @returns 消息实例。
    */
@@ -858,6 +861,7 @@ export class ChatMessage {
    *  - thumbnailLocalPath: 缩略图本地地址。
    *  - duration: 语音时长。
    *  - fileSize: 文件大小。
+   *  - receiverList: 消息接收人列表。
    *
    * @returns 消息实例。
    */
@@ -913,6 +917,7 @@ export class ChatMessage {
    *  - title: 合并消息的标题。
    *  - summary: 合并消息的概要。
    *  - compatibleText: 合并消息的兼容信息。该字段用于需要兼容不支持合并转发消息的版本。
+   *  - receiverList: 消息接收人列表。
    *
    * @returns The message instance.
    */
@@ -962,6 +967,7 @@ export class ChatMessage {
    *  - isOnline: 是否为在线时收到的消息。
    *  - deliverOnlineOnly: 消息是否只投递给在线用户。
    *  - address: 地址信息。
+   *  - receiverList: 消息接收人列表。
    *
    * @returns 消息实例。
    */
@@ -1006,6 +1012,7 @@ export class ChatMessage {
    *  - isChatThread: 是否是子区消息。默认不是子区消息。
    *  - isOnline: 是否为在线时收到的消息。
    *  - deliverOnlineOnly: 消息是否只投递给在线用户。
+   *  - receiverList: 消息接收人列表。
    *
    * @returns 消息实例。
    */
@@ -1047,6 +1054,7 @@ export class ChatMessage {
    *  - isOnline: 是否为在线时收到的消息。
    *  - deliverOnlineOnly: 消息是否只投递给在线用户。
    *  - params: 自定义参数。key-value格式。
+   *  - receiverList: 消息接收人列表。
    *
    * @returns 消息实例。
    */
@@ -1692,6 +1700,10 @@ export class ChatRecalledMessageInfo {
    * 撤销消息的扩展信息。
    */
   recalledExt?: string;
+  /**
+   * 撤销的消息会话ID。
+   */
+  recalledConvId?: string;
 
   /**
    * 创建撤销消息对象。
@@ -1701,10 +1713,12 @@ export class ChatRecalledMessageInfo {
     recalledMessage?: ChatMessage;
     recalledBy: string;
     recalledExt?: string;
+    recalledConvId?: string;
   }) {
     this.recalledMessageId = params.recalledMessageId;
     this.recalledMessage = params.recalledMessage;
     this.recalledBy = params.recalledBy;
     this.recalledExt = params.recalledExt;
+    this.recalledConvId = params.recalledConvId;
   }
 }

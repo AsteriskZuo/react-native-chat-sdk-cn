@@ -42,6 +42,7 @@ import {
   MTgetLatestMessage,
   MTgetLatestMessageFromOthers,
   MTgetMessage,
+  MTgetMessageCount,
   MTgetMessageCountWithTimestamp,
   MTgetMessageThread,
   MTgetMsgCount,
@@ -78,7 +79,6 @@ import {
   MTonMessagePinChanged,
   MTonMessagesDelivered,
   MTonMessagesRead,
-  MTonMessagesRecalled,
   MTonMessagesRecalledInfo,
   MTonMessagesReceived,
   MTonReadAckForGroupMessageUpdated,
@@ -127,7 +127,7 @@ import {
   ChatMessagePinInfo,
   ChatMessageSearchScope,
   ChatMessageStatus,
-  ChatMessageStatusCallback,
+  type ChatMessageStatusCallback,
   ChatMessageType,
   ChatRecalledMessageInfo,
 } from './common/ChatMessage';
@@ -210,8 +210,6 @@ export class ChatManager extends BaseManager {
       MTonMessagesDelivered,
       this.onMessagesDelivered.bind(this)
     );
-    event.removeAllListeners(MTonMessagesRecalled);
-    event.addListener(MTonMessagesRecalled, this.onMessagesRecalled.bind(this));
     event.removeAllListeners(MTonMessagesRecalledInfo);
     event.addListener(
       MTonMessagesRecalledInfo,
@@ -353,16 +351,6 @@ export class ChatManager extends BaseManager {
     let list: Array<ChatMessage> = this.createReceiveMessage(messages);
     this._messageListeners.forEach((listener: ChatMessageEventListener) => {
       listener.onMessagesDelivered?.(list);
-    });
-  }
-  private onMessagesRecalled(messages: any[]): void {
-    chatlog.log(`${ChatManager.TAG}: onMessagesRecalled: `, messages);
-    if (this._messageListeners.size === 0) {
-      return;
-    }
-    let list: Array<ChatMessage> = this.createReceiveMessage(messages);
-    this._messageListeners.forEach((listener: ChatMessageEventListener) => {
-      listener.onMessagesRecalled?.(list);
     });
   }
   private onMessagesRecalledInfo(params: any[]): void {
@@ -3815,5 +3803,19 @@ export class ChatManager extends BaseManager {
     });
     ChatManager.checkErrorFromResult(r);
     return r?.[MTgetMessageCountWithTimestamp];
+  }
+
+  /**
+   * 获取本地消息数量。
+   *
+   * @returns 本地消息的数量。
+   *
+   * @throws 如果有异常会在此抛出，包括错误码和错误信息，详见 {@link ChatError}.
+   */
+  public async getMessageCount(): Promise<number> {
+    chatlog.log(`${ChatManager.TAG}: getMessageCount: `);
+    let r: any = await Native._callMethod(MTgetMessageCount);
+    Native.checkErrorFromResult(r);
+    return r?.[MTgetMessageCount] as number;
   }
 }

@@ -197,6 +197,15 @@ export class ChatOptions {
    */
   loginExtraInfo?: string;
 
+  /**
+   * 工作目录下的内容是否可以拷贝
+   *
+   * **Note** 仅ios平台生效。
+   *
+   * 默认是 `false`
+   */
+  workPathCopiable?: boolean;
+
   constructor(params: {
     appKey: string;
     autoLogin?: boolean;
@@ -229,6 +238,7 @@ export class ChatOptions {
     regardImportMessagesAsRead?: boolean;
     useReplacedMessageContents?: boolean;
     loginExtraInfo?: string;
+    workPathCopiable?: boolean;
   }) {
     this.appKey = params.appKey;
     this.autoLogin = params.autoLogin ?? true;
@@ -267,5 +277,6 @@ export class ChatOptions {
     this.useReplacedMessageContents =
       params.useReplacedMessageContents ?? false;
     this.loginExtraInfo = params.loginExtraInfo;
+    this.workPathCopiable = params.workPathCopiable ?? false;
   }
 }

@@ -377,11 +377,23 @@ export interface ChatConnectEventListener {
    * 服务器主动断开连接。
    */
   onAppActiveNumberReachLimit?(): void;
+  
+  /**
+   * 开始接收离线消息的时候触发。
+   */
+  onOfflineMessageSyncStart?(): void;
+
+  /**
+   * 结束接收离线消息的时候触发。
+   */
+  onOfflineMessageSyncFinish?(): void;
 
   /**
    * 其他设备登录通知。
    *
    * 服务器主动断开连接。
+   *
+   * @deprecated 2024-08-15 请使用 {@link onUserDidLoginFromOtherDeviceWithInfo} 替换
    */
   onUserDidLoginFromOtherDevice?(deviceName?: string): void;
 
@@ -547,8 +559,8 @@ export interface ChatCustomEventListener {
  *     onMessagesDelivered(messages: ChatMessage[]): void {
  *       chatlog.log('ConnectScreen.onMessagesDelivered', messages);
  *     }
- *     onMessagesRecalled(messages: ChatMessage[]): void {
- *       chatlog.log('ConnectScreen.onMessagesRecalled', messages);
+ *     onMessagesRecalledInfo(messages: ChatRecalledMessageInfo[]): void {
+ *       chatlog.log('ConnectScreen.onMessagesRecalledInfo', messages);
  *     }
  *     onConversationsUpdate(): void {
  *       chatlog.log('ConnectScreen.onConversationsUpdate');
@@ -605,13 +617,6 @@ export interface ChatMessageEventListener {
    * @param messages 送达回执对应的消息。
    */
   onMessagesDelivered?(messages: Array<ChatMessage>): void;
-
-  /**
-   * 已收到的消息被撤回的回调。
-   *
-   * @param messages 撤回的消息。
-   */
-  onMessagesRecalled?(messages: Array<ChatMessage>): void;
 
   /**
    * 收到消息撤销通知的回调。
@@ -1118,6 +1123,18 @@ export interface ChatRoomEventListener {
     roomId: string;
     mutes: Array<string>;
     expireTime?: string;
+  }): void;
+  
+  /**
+   * 增加禁言成员时候回调。
+   *
+   * @params 参数组。
+   * - Param [roomId] 聊天室 ID。
+   * - Param [mutes] 禁言列表。key为用户ID，value为过期时间戳。
+   */
+  onMuteListAddedV2?(params: {
+    roomId: string;
+    mutes: Record<string, number>;
   }): void;
   /**
    * 有成员从禁言列表中移除回调。

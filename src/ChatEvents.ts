@@ -136,11 +136,11 @@ export enum ChatMultiDeviceEvent {
    */
   GROUP_REMOVE_ALL_BAN,
   /**
-   * The current user are group disable on another device.
+   * 当前用户被其他设备禁止入群。
    */
   GROUP_DISABLED,
   /**
-   * The current user are group able on another device.
+   * 当前用户被其他设备可以入群。
    */
   GROUP_ABLE,
   /**

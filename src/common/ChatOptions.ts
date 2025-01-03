@@ -10,6 +10,10 @@ export class ChatOptions {
    */
   appKey: string;
   /**
+   * 创建 App 时在 console 后台上注册的 App 唯一识别符，即 App ID。
+   */
+  appId: string;
+  /**
    * 是否开启自动登录。
    * -（默认） `true`：开启；
    * - `false`：关闭。
@@ -206,8 +210,12 @@ export class ChatOptions {
    */
   workPathCopiable?: boolean;
 
+  /**
+   * @deprecated 请使用 {@link withAppId} and {@link withAppKey} 替代.
+   */
   constructor(params: {
     appKey: string;
+    appId: string;
     autoLogin?: boolean;
     debugModel?: boolean;
     acceptInvitationAlways?: boolean;
@@ -240,6 +248,13 @@ export class ChatOptions {
     loginExtraInfo?: string;
     workPathCopiable?: boolean;
   }) {
+    if (!params.appKey && !params.appId) {
+      throw new ChatError({
+        code: -1,
+        description: 'appId and appKey cannot be undefined at the same time!',
+      });
+    }
+    this.appId = params.appId;
     this.appKey = params.appKey;
     this.autoLogin = params.autoLogin ?? true;
     this.debugModel = params.debugModel ?? false;
@@ -278,5 +293,86 @@ export class ChatOptions {
       params.useReplacedMessageContents ?? false;
     this.loginExtraInfo = params.loginExtraInfo;
     this.workPathCopiable = params.workPathCopiable ?? false;
+  }
+
+  static withAppId(params: {
+    appId: string;
+    autoLogin?: boolean;
+    debugModel?: boolean;
+    acceptInvitationAlways?: boolean;
+    autoAcceptGroupInvitation?: boolean;
+    requireAck?: boolean;
+    requireDeliveryAck?: boolean;
+    deleteMessagesAsExitGroup?: boolean;
+    deleteMessagesAsExitChatRoom?: boolean;
+    isChatRoomOwnerLeaveAllowed?: boolean;
+    sortMessageByServerTime?: boolean;
+    usingHttpsOnly?: boolean;
+    serverTransfer?: boolean;
+    isAutoDownload?: boolean;
+    pushConfig?: ChatPushConfig;
+    areaCode?: ChatAreaCode;
+    logTag?: string;
+    logTimestamp?: boolean;
+    enableEmptyConversation?: boolean;
+    customDeviceName?: string;
+    customOSType?: number;
+    enableDNSConfig?: boolean;
+    dnsUrl?: string;
+    restServer?: string;
+    imServer?: string;
+    imPort?: number;
+    enableTLS?: boolean;
+    messagesReceiveCallbackIncludeSend?: boolean;
+    regardImportMessagesAsRead?: boolean;
+    useReplacedMessageContents?: boolean;
+    loginExtraInfo?: string;
+    workPathCopiable?: boolean;
+  }) {
+    return new ChatOptions({
+      ...params,
+      appId: params.appId,
+      appKey: undefined as any,
+    });
+  }
+  static withAppKey(params: {
+    appKey: string;
+    autoLogin?: boolean;
+    debugModel?: boolean;
+    acceptInvitationAlways?: boolean;
+    autoAcceptGroupInvitation?: boolean;
+    requireAck?: boolean;
+    requireDeliveryAck?: boolean;
+    deleteMessagesAsExitGroup?: boolean;
+    deleteMessagesAsExitChatRoom?: boolean;
+    isChatRoomOwnerLeaveAllowed?: boolean;
+    sortMessageByServerTime?: boolean;
+    usingHttpsOnly?: boolean;
+    serverTransfer?: boolean;
+    isAutoDownload?: boolean;
+    pushConfig?: ChatPushConfig;
+    areaCode?: ChatAreaCode;
+    logTag?: string;
+    logTimestamp?: boolean;
+    enableEmptyConversation?: boolean;
+    customDeviceName?: string;
+    customOSType?: number;
+    enableDNSConfig?: boolean;
+    dnsUrl?: string;
+    restServer?: string;
+    imServer?: string;
+    imPort?: number;
+    enableTLS?: boolean;
+    messagesReceiveCallbackIncludeSend?: boolean;
+    regardImportMessagesAsRead?: boolean;
+    useReplacedMessageContents?: boolean;
+    loginExtraInfo?: string;
+    workPathCopiable?: boolean;
+  }) {
+    return new ChatOptions({
+      ...params,
+      appKey: params.appKey,
+      appId: undefined as any,
+    });
   }
 }

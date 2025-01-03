@@ -2,6 +2,7 @@ import { type EmitterSubscription, NativeEventEmitter } from 'react-native';
 
 import { BaseManager } from './__internal__/Base';
 import {
+  MTchangeAppId,
   MTchangeAppKey,
   MTcompressLogs,
   MTcreateAccount,
@@ -62,6 +63,7 @@ import { ChatOptions } from './common/ChatOptions';
 import { ChatPushConfig } from './common/ChatPushConfig';
 import { eventEmitter } from './__specs__';
 import { Native } from './__internal__/Native';
+import { ChatError } from './common/ChatError';
 
 chatlog.log('dev:eventEmitter: ', eventEmitter);
 
@@ -461,14 +463,20 @@ export class ChatClient extends BaseManager {
    */
   public async init(options: ChatOptions): Promise<void> {
     chatlog.log(`${ChatClient.TAG}: init: `, options);
-    if (options.appKey === undefined || options.appKey.length === 0) {
-      throw new Error('appKey is empty.');
+    if (options.appKey && options.appKey.length > 0) {
+      this._options = ChatOptions.withAppKey(options); // deep copy
+    } else if (options.appId && options.appId.length > 0) {
+      this._options = ChatOptions.withAppId(options); // deep copy
+    } else {
+      throw new ChatError({
+        code: 1,
+        description: 'appKey or appId is empty.',
+      });
     }
-    this._options = new ChatOptions(options); // deep copy
-    chatlog.enableLog = options.debugModel ?? false;
-    chatlog.enableTimestamp = options.logTimestamp ?? true;
-    chatlog.tag = options.logTag ?? '[chat]';
-    const r = await Native._callMethod(MTinit, { options });
+    chatlog.enableLog = this._options!.debugModel ?? false;
+    chatlog.enableTimestamp = this._options!.logTimestamp ?? true;
+    chatlog.tag = this._options!.logTag ?? '[chat]';
+    const r = await Native._callMethod(MTinit, { options: this._options });
     ChatClient.checkErrorFromResult(r);
   }
 
@@ -605,11 +613,13 @@ export class ChatClient extends BaseManager {
    *
    * @param userId    用户 ID。详见 {@link createAccount}。
    * @param pwdOrToken  密码或环信 token，详见 {@link createAccount} 或者 {@link getAccessToken}。
-   * @param isPassword  是否通过 token 登录。
-   *                    - `true`: 通过 token 登录。
-   *                    - （默认）`false`: 通过密码登录。
+   * @param isPassword  是否通过 密码 登录。
+   *                    - （默认）`true`: 通过 密码 登录。
+   *                    - `false`: 通过 token 登录。
    *
    * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   *
+   * @deprecated 请用 {@link loginWithToken} 替代.
    */
   public async login(
     userId: string,
@@ -633,6 +643,32 @@ export class ChatClient extends BaseManager {
   }
 
   /**
+   * 通过用户ID和token登录。
+   *
+   *
+   * 请关注token过期回调通知: {@link ChatConnectEventListener.onTokenWillExpire} 和 {@link ChatConnectEventListener.onTokenDidExpire}.
+   *
+   * @param userId  用户ID.
+   * @param token  用户token.
+   *
+   * @throws A description of the exception. See {@link ChatError}.
+   */
+  public async loginWithToken(userId: string, token: string): Promise<void> {
+    chatlog.log(`${ChatClient.TAG}: loginWithToken: `, userId, '******', false);
+    let r: any = await Native._callMethod(MTlogin, {
+      [MTlogin]: {
+        username: userId,
+        pwdOrToken: token,
+        isPassword: false,
+      },
+    });
+    ChatClient.checkErrorFromResult(r);
+    const rr = r?.[MTlogin];
+    if (rr && rr.username) {
+      this._currentUsername = rr.username;
+      chatlog.log(`${ChatClient.TAG}: login: ${rr?.username}, ${rr?.token}`);
+    }
+  }
    * @deprecated 2023-11-17 使用 {@link login} 代替。
    *
    * 使用用户 ID 和声网 token 登录。
@@ -738,6 +774,29 @@ export class ChatClient extends BaseManager {
     ChatClient.checkErrorFromResult(r);
   }
 
+  /**
+   * 更新 app iD。
+   *
+   * **Note**
+   *
+   * - 需要不登录的状态下使用，如果登录请使用 {@link logout} 退出.
+   *
+   * @param 新的 app ID。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async changeAppId(newAppId: string): Promise<void> {
+    chatlog.log(`${ChatClient.TAG}: changeAppId: `, newAppId);
+    if (newAppId === undefined || newAppId.length === 0) {
+      throw new Error('appId is empty.');
+    }
+    let r: any = await Native._callMethod(MTchangeAppId, {
+      [MTchangeAppId]: {
+        appId: newAppId,
+      },
+    });
+    ChatClient.checkErrorFromResult(r);
+  }
   /**
    * 压缩日志文件。
    *
@@ -967,9 +1026,9 @@ export class ChatClient extends BaseManager {
   }
 
   /**
-   * Add error listener.
+   * 增加错误监听器。
    *
-   * Monitor SDK internal errors.
+   * 接收异常通知。
    */
   public addExceptListener(listener: ChatExceptionEventListener): void {
     chatlog.log(`${ChatClient.TAG}: addExceptListener: `);
@@ -977,7 +1036,7 @@ export class ChatClient extends BaseManager {
   }
 
   /**
-   * Remove error listener.
+   * 移除错误监听器。
    */
   public removeExceptListener(listener: ChatExceptionEventListener): void {
     chatlog.log(`${ChatClient.TAG}: removeExceptListener: `);
@@ -985,7 +1044,7 @@ export class ChatClient extends BaseManager {
   }
 
   /**
-   * Remove all error listener.
+   * 移除所有错误监听器。
    */
   public removeAllExceptListener(): void {
     chatlog.log(`${ChatClient.TAG}: removeAllExceptListener: `);
@@ -993,11 +1052,11 @@ export class ChatClient extends BaseManager {
   }
 
   /**
-   * Gets the chat manager class.
+   * 获取聊天管理器对象
    *
-   * This method can be called only after the chat client is initialized.
+   * 需要初始化之后才能够使用。
    *
-   * @returns The chat manager class.
+   * @returns 管理器对象
    */
   public get chatManager(): ChatManager {
     return this._chatManager;

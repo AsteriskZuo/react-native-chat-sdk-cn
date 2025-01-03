@@ -669,6 +669,7 @@ export class ChatClient extends BaseManager {
       chatlog.log(`${ChatClient.TAG}: login: ${rr?.username}, ${rr?.token}`);
     }
   }
+  /*
    * @deprecated 2023-11-17 使用 {@link login} 代替。
    *
    * 使用用户 ID 和声网 token 登录。

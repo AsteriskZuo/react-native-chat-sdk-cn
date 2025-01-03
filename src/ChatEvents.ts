@@ -377,7 +377,7 @@ export interface ChatConnectEventListener {
    * 服务器主动断开连接。
    */
   onAppActiveNumberReachLimit?(): void;
-  
+
   /**
    * 开始接收离线消息的时候触发。
    */
@@ -1124,7 +1124,7 @@ export interface ChatRoomEventListener {
     mutes: Array<string>;
     expireTime?: string;
   }): void;
-  
+
   /**
    * 增加禁言成员时候回调。
    *

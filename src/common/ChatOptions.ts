@@ -1,4 +1,5 @@
 import { ChatAreaCode } from './ChatAreaCode';
+import { ChatError } from './ChatError';
 import type { ChatPushConfig } from './ChatPushConfig';
 
 /**

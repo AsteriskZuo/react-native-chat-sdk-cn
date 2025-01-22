@@ -121,6 +121,32 @@ export class ChatRoom {
    */
   isAllMemberMuted?: boolean;
   /**
+   * 当前用户是否在白名单中。
+   * 此属性在加入聊天室后可用。
+   * 当前用户被添加到白名单或从白名单中移除时，此属性会更新。
+   * - `true`: 在白名单中
+   * - `false`: 不在白名单中
+   */
+  isInWhitelist?: boolean;
+
+  /**
+   * 获取聊天室创建时的时间戳（毫秒）。
+   * 此属性在加入聊天室后可用。
+   */
+  createTimestamp?: number;
+
+  /**
+   * 获取当前用户禁言到期的时间戳（毫秒）。
+   *
+   * 此属性在加入聊天室后可用。
+   * 当用户被禁言或解除禁言时，此属性会更新。
+   *
+   * - 值为零表示当前用户未被禁言
+   * - 值为-1表示无法正确获取禁言到期时间
+   */
+  muteExpireTimestamp?: number;
+
+  /**
    * 聊天室成员角色类型，详见 {@link ChatRoomPermissionType}。
    */
   permissionType: ChatRoomPermissionType;
@@ -139,6 +165,9 @@ export class ChatRoom {
     muteKVList?: Record<string, number>;
     isAllMemberMuted?: boolean;
     permissionType: number;
+    isInWhitelist?: boolean;
+    createTimestamp?: number;
+    muteExpireTimestamp?: number;
   }) {
     this.roomId = params.roomId;
     this.roomName = params.roomName;
@@ -156,5 +185,8 @@ export class ChatRoom {
     this.permissionType = ChatRoomPermissionTypeFromNumber(
       params.permissionType
     );
+    this.isInWhitelist = params.isInWhitelist;
+    this.createTimestamp = params.createTimestamp;
+    this.muteExpireTimestamp = params.muteExpireTimestamp;
   }
 }

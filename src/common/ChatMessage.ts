@@ -87,11 +87,11 @@ export enum ChatDownloadStatus {
  */
 export enum ChatMessageType {
   /**
-   * 文本消息。
+   * 未知消息。
    */
   // UNKNOWN = 'unknown',
   /**
-   * Text message.
+   * 文本消息。
    */
   TXT = 'txt',
   /**

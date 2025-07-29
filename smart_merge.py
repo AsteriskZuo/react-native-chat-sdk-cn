@@ -288,9 +288,16 @@ class GitDiffParser:
                     else:
                         results["error"].append(file_path)
                 else:
-                    # 文件在目标目录存在但源目录不存在，保持不变
-                    results["no_diff"].append(file_path)
-                    success_count += 1
+                    # 文件在目标目录存在但源目录不存在，删除目标文件
+                    if target_file.exists():
+                        target_file.unlink()
+                        results["deleted"] = results.get("deleted", [])
+                        results["deleted"].append(file_path)
+                        print(f"  已删除文件: {file_path}")
+                        success_count += 1
+                    else:
+                        results["no_diff"].append(file_path)
+                        success_count += 1
 
             except Exception as e:
                 print(f"处理文件 {file_path} 时出错: {e}")

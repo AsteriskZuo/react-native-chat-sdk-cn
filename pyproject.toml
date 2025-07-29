@@ -1,0 +1,11 @@
+[project]
+name = "react-native-chat-sdk-cn"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pathlib>=1.0.1",
+    "ruff>=0.12.5",
+    "typing>=3.10.0.0",
+]

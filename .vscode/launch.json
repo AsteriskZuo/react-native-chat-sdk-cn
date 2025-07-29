@@ -18,7 +18,7 @@
       "request": "launch",
       "program": "${workspaceFolder}/smart_merge_v5.py",
       "console": "integratedTerminal",
-      "args": ["test/src"],
+      "args": ["src"],
       "cwd": "${workspaceFolder}"
     },
     {
@@ -26,7 +26,7 @@
       "type": "debugpy",
       "request": "launch",
       "program": "/opt/homebrew/bin/uv",
-      "args": ["run", "smart_merge_v5.py", "test/src"],
+      "args": ["run", "smart_merge_v5.py", "src"],
       "console": "integratedTerminal",
       "cwd": "${workspaceFolder}"
     }

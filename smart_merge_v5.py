@@ -10,6 +10,10 @@ from typing import List
 
 
 class DiffBasedMerger:
+    comment_start = "/**"
+    comment_start2 = "/*"
+    comment_end = "*/"
+
     def __init__(self, target_dir: str):
         self.target_dir = Path(target_dir)
 
@@ -48,37 +52,6 @@ class DiffBasedMerger:
         """检查是否包含英文单词"""
         return bool(re.search(r"[a-zA-Z]{2,}", text))
 
-    def remove_english_from_line(self, line: str) -> str:
-        """从行中移除英文，保留中文和符号"""
-        # 移除英文单词，保留中文、符号和格式
-        cleaned = re.sub(r"[a-zA-Z]+[a-zA-Z\s\.,;:!?\-]*", "", line)
-        # 清理多余空格
-        cleaned = re.sub(r"\s+", " ", cleaned).strip()
-        return cleaned
-
-    def is_in_comment_block(self, lines: List[str], current_index: int) -> bool:
-        """判断当前行是否在 /** */ 注释块内"""
-        # 向前找 /**
-        comment_start = -1
-        for i in range(current_index, -1, -1):
-            line_content = lines[i][1:] if len(lines[i]) > 0 else ""  # 去掉diff前缀
-            if "/**" in line_content:
-                comment_start = i
-                break
-            if "*/" in line_content and "/**" not in line_content:
-                return False  # 遇到结束标记，不在注释块内
-
-        if comment_start == -1:
-            return False
-
-        # 从注释开始向后找 */
-        for i in range(comment_start, len(lines)):
-            line_content = lines[i][1:] if len(lines[i]) > 0 else ""
-            if "*/" in line_content:
-                return current_index <= i  # 当前行在注释结束之前
-
-        return True  # 找到开始但没找到结束，认为在注释块内
-
     def process_diff_content(self, diff_lines: List[str]) -> List[str]:
         """处理diff内容，生成最终文件"""
         start_index = self.skip_diff_header(diff_lines)
@@ -95,11 +68,20 @@ class DiffBasedMerger:
 
             prefix = line[0] if line else " "
             content = line[1:] if len(line) > 1 else ""
-
+    
             # 检查是否是注释块的开始
-            if "/**" in content:
+            if self.comment_start in content or self.comment_start2 in content:
                 # 处理整个注释块
                 comment_block, next_index = self.extract_comment_block(content_lines, i)
+
+                # 需要判断下一行是否存在，如果存在判断是否开头是减号，如果是减号则注释快整体删除
+                if next_index < len(content_lines):
+                    next_line = content_lines[next_index]
+                    if next_line.startswith("-"):
+                        # 删除整个注释块
+                        i = next_index
+                        continue
+
                 processed_block = self.process_comment_block(comment_block)
                 result_lines.extend(processed_block)
                 i = next_index
@@ -135,7 +117,7 @@ class DiffBasedMerger:
             content = line[1:] if len(line) > 1 else ""
 
             # 如果遇到注释结束标记，结束提取
-            if "*/" in content:
+            if self.comment_end in content:
                 i += 1
                 break
             i += 1
@@ -149,7 +131,7 @@ class DiffBasedMerger:
         for line in comment_lines:
             prefix = line[0] if line else " "
             content = line[1:] if len(line) > 1 else ""
-            comment_content += content + "\n"
+            comment_content += line + "\n"
 
         # 检查注释块是否既有中文又有英文
         if self.has_chinese(comment_content) and self.has_english(comment_content):
@@ -182,10 +164,8 @@ class DiffBasedMerger:
                 # 删除的行（原中文），保留
                 result.append(content)
             elif prefix == "+":
-                # 添加的行（新英文），如果对应的中文行存在就跳过，否则保留
-                # 这里简化处理：如果是英文行就跳过
-                if not self.has_english(content) or self.has_chinese(content):
-                    result.append(content)
+                # 添加的行（新英文），需要删除
+                continue
             elif prefix == " ":
                 # 未修改的行，保留
                 result.append(content)

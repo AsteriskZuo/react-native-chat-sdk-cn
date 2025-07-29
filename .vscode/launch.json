@@ -1,0 +1,34 @@
+{
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python Debugger: Current File with Arguments",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "args": "${command:pickArgs}"
+    },
+    {
+      "name": "Debug smart_merge_v5.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/smart_merge_v5.py",
+      "console": "integratedTerminal",
+      "args": ["test/src"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Debug smart_merge_v5.py with uv",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "/opt/homebrew/bin/uv",
+      "args": ["run", "smart_merge_v5.py", "test/src"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}

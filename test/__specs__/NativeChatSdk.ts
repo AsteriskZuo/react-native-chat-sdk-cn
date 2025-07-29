@@ -3,7 +3,8 @@ import { TurboModuleRegistry } from 'react-native';
 
 export interface Spec extends TurboModule {
   multiply(a: number, b: number): Promise<number>;
-  callMethod(method: string, args?: Object): Promise<Object>;
+  // callMethodA(params: { method: string; args?: Object }): Promise<Object>;
+  callMethodB(method: string, args?: Object): Promise<Object>;
 
   // Keep: Required for RN built in Event Emitter Calls.
   addListener(eventName: string): void;

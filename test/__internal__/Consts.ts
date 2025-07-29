@@ -87,9 +87,7 @@ export const MTdeleteConversation = 'deleteConversation';
 export const MTfetchHistoryMessages = 'fetchHistoryMessages';
 export const MTfetchHistoryMessagesByOptions = 'fetchHistoryMessagesByOptions';
 export const MTsearchChatMsgFromDB = 'searchChatMsgFromDB';
-export const MTgetConvsMsgsWithKeyword = 'getConvsMsgsWithKeyword';
 export const MTgetMessage = 'getMessage';
-export const MTgetMessagesWithIds = 'getMessagesWithIds';
 export const MTasyncFetchGroupAcks = 'asyncFetchGroupAcks';
 export const MTdeleteRemoteConversation = 'deleteRemoteConversation';
 export const MTdeleteMessagesBeforeTimestamp = 'deleteMessagesBeforeTimestamp';
@@ -116,7 +114,6 @@ export const MTgetPinnedConversationsFromServerWithCursor =
   'getPinnedConversationsFromServerWithCursor';
 export const MTpinConversation = 'pinConversation';
 export const MTmodifyMessage = 'modifyMessage';
-export const MTmodifyMsgBody = 'modifyMsgBody';
 export const MTdownloadAndParseCombineMessage =
   'downloadAndParseCombineMessage';
 
@@ -231,7 +228,6 @@ export const MTcreateGroup = 'createGroup';
 export const MTgetGroupSpecificationFromServer =
   'getGroupSpecificationFromServer';
 export const MTgetGroupMemberListFromServer = 'getGroupMemberListFromServer';
-export const MTfetchMemberInfoListFromServer = 'fetchMemberInfoListFromServer';
 export const MTgetGroupBlockListFromServer = 'getGroupBlockListFromServer';
 export const MTgetGroupMuteListFromServer = 'getGroupMuteListFromServer';
 export const MTgetGroupAllowListFromServer = 'getGroupAllowListFromServer';
@@ -263,7 +259,6 @@ export const MTuploadGroupSharedFile = 'uploadGroupSharedFile';
 export const MTdownloadGroupSharedFile = 'downloadGroupSharedFile';
 export const MTremoveGroupSharedFile = 'removeGroupSharedFile';
 export const MTupdateGroupAnnouncement = 'updateGroupAnnouncement';
-export const MTupdateGroupAvatar = 'updateGroupAvatar';
 export const MTupdateGroupExt = 'updateGroupExt';
 export const MTjoinPublicGroup = 'joinPublicGroup';
 export const MTrequestToJoinPublicGroup = 'requestToJoinPublicGroup';

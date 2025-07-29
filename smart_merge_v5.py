@@ -1,0 +1,272 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+from typing import List
+
+
+class DiffBasedMerger:
+    def __init__(self, target_dir: str):
+        self.target_dir = Path(target_dir)
+
+    def get_full_diff(self, file_path: str) -> str:
+        """获取完整的diff内容"""
+        try:
+            cmd = ["git", "diff", "--no-prefix", "-U99999", file_path]
+            result = subprocess.run(
+                cmd, capture_output=True, text=True, cwd=self.target_dir
+            )
+            return result.stdout
+        except Exception as e:
+            print(f"获取diff失败 {file_path}: {e}")
+            return ""
+
+    def skip_diff_header(self, diff_lines: List[str]) -> int:
+        """跳过diff元信息，返回内容开始的行号"""
+        for i, line in enumerate(diff_lines):
+            if (
+                line.startswith("diff --git")
+                or line.startswith("index ")
+                or line.startswith("--- ")
+                or line.startswith("+++ ")
+                or line.startswith("@@")
+            ):
+                continue
+            else:
+                return i
+        return len(diff_lines)
+
+    def has_chinese(self, text: str) -> bool:
+        """检查是否包含中文"""
+        return bool(re.search(r"[\u4e00-\u9fff]", text))
+
+    def has_english(self, text: str) -> bool:
+        """检查是否包含英文单词"""
+        return bool(re.search(r"[a-zA-Z]{2,}", text))
+
+    def remove_english_from_line(self, line: str) -> str:
+        """从行中移除英文，保留中文和符号"""
+        # 移除英文单词，保留中文、符号和格式
+        cleaned = re.sub(r"[a-zA-Z]+[a-zA-Z\s\.,;:!?\-]*", "", line)
+        # 清理多余空格
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        return cleaned
+
+    def is_in_comment_block(self, lines: List[str], current_index: int) -> bool:
+        """判断当前行是否在 /** */ 注释块内"""
+        # 向前找 /**
+        comment_start = -1
+        for i in range(current_index, -1, -1):
+            line_content = lines[i][1:] if len(lines[i]) > 0 else ""  # 去掉diff前缀
+            if "/**" in line_content:
+                comment_start = i
+                break
+            if "*/" in line_content and "/**" not in line_content:
+                return False  # 遇到结束标记，不在注释块内
+
+        if comment_start == -1:
+            return False
+
+        # 从注释开始向后找 */
+        for i in range(comment_start, len(lines)):
+            line_content = lines[i][1:] if len(lines[i]) > 0 else ""
+            if "*/" in line_content:
+                return current_index <= i  # 当前行在注释结束之前
+
+        return True  # 找到开始但没找到结束，认为在注释块内
+
+    def process_diff_content(self, diff_lines: List[str]) -> List[str]:
+        """处理diff内容，生成最终文件"""
+        start_index = self.skip_diff_header(diff_lines)
+        content_lines = diff_lines[start_index:]
+
+        result_lines = []
+        i = 0
+
+        while i < len(content_lines):
+            line = content_lines[i]
+            if not line:
+                i += 1
+                continue
+
+            prefix = line[0] if line else " "
+            content = line[1:] if len(line) > 1 else ""
+
+            # 检查是否是注释块的开始
+            if "/**" in content:
+                # 处理整个注释块
+                comment_block, next_index = self.extract_comment_block(content_lines, i)
+                processed_block = self.process_comment_block(comment_block)
+                result_lines.extend(processed_block)
+                i = next_index
+            else:
+                # 非注释内容，按正常diff规则处理
+                if prefix == "-":
+                    # 删除的行，不包含在结果中
+                    pass
+                elif prefix == "+":
+                    # 添加的行
+                    result_lines.append(content)
+                elif prefix == " ":
+                    # 未修改的行
+                    result_lines.append(content)
+                i += 1
+
+        return result_lines
+
+    def extract_comment_block(
+        self, content_lines: List[str], start_index: int
+    ) -> tuple[List[str], int]:
+        """提取完整的注释块，返回(注释块行列表, 下一个处理的索引)"""
+        comment_lines = []
+        i = start_index
+
+        while i < len(content_lines):
+            line = content_lines[i]
+            if not line:
+                i += 1
+                continue
+
+            comment_lines.append(line)
+            content = line[1:] if len(line) > 1 else ""
+
+            # 如果遇到注释结束标记，结束提取
+            if "*/" in content:
+                i += 1
+                break
+            i += 1
+
+        return comment_lines, i
+
+    def process_comment_block(self, comment_lines: List[str]) -> List[str]:
+        """处理注释块"""
+        # 提取注释块的纯文本内容（去掉diff前缀）
+        comment_content = ""
+        for line in comment_lines:
+            prefix = line[0] if line else " "
+            content = line[1:] if len(line) > 1 else ""
+            comment_content += content + "\n"
+
+        # 检查注释块是否既有中文又有英文
+        if self.has_chinese(comment_content) and self.has_english(comment_content):
+            # 移除英文，保留中文
+            return self.remove_english_from_comment_block(comment_lines)
+        else:
+            # 按正常diff规则处理
+            result = []
+            for line in comment_lines:
+                prefix = line[0] if line else " "
+                content = line[1:] if len(line) > 1 else ""
+
+                if prefix == "-":
+                    # 删除的行，不包含在结果中
+                    continue
+                elif prefix == "+" or prefix == " ":
+                    # 添加的行或未修改的行
+                    result.append(content)
+            return result
+
+    def remove_english_from_comment_block(self, comment_lines: List[str]) -> List[str]:
+        """从注释块中移除英文，保留中文"""
+        result = []
+
+        for line in comment_lines:
+            prefix = line[0] if line else " "
+            content = line[1:] if len(line) > 1 else ""
+
+            if prefix == "-":
+                # 删除的行（原中文），保留
+                result.append(content)
+            elif prefix == "+":
+                # 添加的行（新英文），如果对应的中文行存在就跳过，否则保留
+                # 这里简化处理：如果是英文行就跳过
+                if not self.has_english(content) or self.has_chinese(content):
+                    result.append(content)
+            elif prefix == " ":
+                # 未修改的行，保留
+                result.append(content)
+
+        return result
+
+    def process_file(self, file_path: str) -> bool:
+        """处理单个文件"""
+        rel_path = os.path.relpath(file_path, self.target_dir)
+
+        # 获取diff内容
+        diff_content = self.get_full_diff(rel_path)
+        if not diff_content:
+            return False  # 没有diff或获取失败
+
+        # 处理diff
+        diff_lines = diff_content.split("\n")
+        result_lines = self.process_diff_content(diff_lines)
+
+        # 写入文件
+        try:
+            full_path = self.target_dir / rel_path
+            with open(full_path, "w", encoding="utf-8") as f:
+                f.write("\n".join(result_lines) + "\n")
+            return True
+        except Exception as e:
+            print(f"写入文件失败 {rel_path}: {e}")
+            return False
+
+    def get_typescript_files(self) -> List[str]:
+        """递归获取所有TypeScript文件"""
+        ts_files = []
+        for root, dirs, files in os.walk(self.target_dir):
+            for file in files:
+                if file.endswith(".ts") or file.endswith(".tsx"):
+                    ts_files.append(os.path.join(root, file))
+        return ts_files
+
+    def process_all_files(self):
+        """处理所有TypeScript文件"""
+        print("开始基于diff合并文件...")
+
+        ts_files = self.get_typescript_files()
+        total_count = len(ts_files)
+        modified_count = 0
+
+        for file_path in ts_files:
+            rel_path = os.path.relpath(file_path, self.target_dir)
+
+            if self.process_file(file_path):
+                modified_count += 1
+                print(f"处理文件: ✓ 已处理 ============ {rel_path}  ")
+            else:
+                print(f"处理文件: - 无变更 ============ {rel_path}  ")
+
+        print(f"\n=== 处理完成 ===")
+        print(f"总文件数: {total_count}")
+        print(f"处理文件数: {modified_count}")
+        print(f"无变更文件数: {total_count - modified_count}")
+
+
+def main():
+    if len(sys.argv) != 2:
+        print("用法: python smart_merge_v5.py <源码目录>")
+        print("示例: python smart_merge_v5.py /path/to/typescript/project")
+        sys.exit(1)
+
+    target_dir = sys.argv[1]
+
+    if not os.path.exists(target_dir):
+        print(f"目录不存在: {target_dir}")
+        sys.exit(1)
+
+    # 检查是否在git仓库中
+    # if not os.path.exists(os.path.join(target_dir, ".git")):
+    #     print(f"目录不是git仓库: {target_dir}")
+    #     sys.exit(1)
+
+    merger = DiffBasedMerger(target_dir)
+    merger.process_all_files()
+
+
+if __name__ == "__main__":
+    main()

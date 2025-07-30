@@ -52,53 +52,25 @@ class DiffBasedMerger:
         """检查是否包含英文单词"""
         return bool(re.search(r"[a-zA-Z]{2,}", text))
 
-    def process_diff_content(self, diff_lines: List[str]) -> List[str]:
-        """处理diff内容，生成最终文件"""
-        start_index = self.skip_diff_header(diff_lines)
-        content_lines = diff_lines[start_index:]
+    def remove_english_from_comment_block(self, comment_lines: List[str]) -> List[str]:
+        """从注释块中移除英文，保留中文"""
+        result = []
 
-        result_lines = []
-        i = 0
-
-        while i < len(content_lines):
-            line = content_lines[i]
-            if not line:
-                i += 1
-                continue
-
+        for line in comment_lines:
             prefix = line[0] if line else " "
             content = line[1:] if len(line) > 1 else ""
-    
-            # 检查是否是注释块的开始
-            if self.comment_start in content or self.comment_start2 in content:
-                # 处理整个注释块
-                comment_block, next_index = self.extract_comment_block(content_lines, i)
 
-                # 需要判断下一行是否存在，如果存在判断是否开头是减号，如果是减号则注释快整体删除
-                if next_index < len(content_lines):
-                    next_line = content_lines[next_index]
-                    if next_line.startswith("-"):
-                        # 删除整个注释块
-                        i = next_index
-                        continue
+            if prefix == "-":
+                # 删除的行（原中文），保留
+                result.append(content)
+            elif prefix == "+":
+                # 添加的行（新英文），需要删除
+                continue
+            elif prefix == " ":
+                # 未修改的行，保留
+                result.append(content)
 
-                processed_block = self.process_comment_block(comment_block)
-                result_lines.extend(processed_block)
-                i = next_index
-            else:
-                # 非注释内容，按正常diff规则处理
-                if prefix == "-":
-                    # 删除的行，不包含在结果中
-                    pass
-                elif prefix == "+":
-                    # 添加的行
-                    result_lines.append(content)
-                elif prefix == " ":
-                    # 未修改的行
-                    result_lines.append(content)
-                i += 1
-
-        return result_lines
+        return result
 
     def extract_comment_block(
         self, content_lines: List[str], start_index: int
@@ -152,25 +124,53 @@ class DiffBasedMerger:
                     result.append(content)
             return result
 
-    def remove_english_from_comment_block(self, comment_lines: List[str]) -> List[str]:
-        """从注释块中移除英文，保留中文"""
-        result = []
+    def process_diff_content(self, diff_lines: List[str]) -> List[str]:
+        """处理diff内容，生成最终文件"""
+        start_index = self.skip_diff_header(diff_lines)
+        content_lines = diff_lines[start_index:]
 
-        for line in comment_lines:
+        result_lines = []
+        i = 0
+
+        while i < len(content_lines):
+            line = content_lines[i]
+            if not line:
+                i += 1
+                continue
+
             prefix = line[0] if line else " "
             content = line[1:] if len(line) > 1 else ""
 
-            if prefix == "-":
-                # 删除的行（原中文），保留
-                result.append(content)
-            elif prefix == "+":
-                # 添加的行（新英文），需要删除
-                continue
-            elif prefix == " ":
-                # 未修改的行，保留
-                result.append(content)
+            # 检查是否是注释块的开始
+            if self.comment_start in content or self.comment_start2 in content:
+                # 处理整个注释块
+                comment_block, next_index = self.extract_comment_block(content_lines, i)
 
-        return result
+                # 需要判断下一行是否存在，如果存在判断是否开头是减号，如果是减号则注释快整体删除
+                if next_index < len(content_lines):
+                    next_line = content_lines[next_index]
+                    if next_line.startswith("-"):
+                        # 删除整个注释块
+                        i = next_index
+                        continue
+
+                processed_block = self.process_comment_block(comment_block)
+                result_lines.extend(processed_block)
+                i = next_index
+            else:
+                # 非注释内容，按正常diff规则处理
+                if prefix == "-":
+                    # 删除的行，不包含在结果中
+                    pass
+                elif prefix == "+":
+                    # 添加的行
+                    result_lines.append(content)
+                elif prefix == " ":
+                    # 未修改的行
+                    result_lines.append(content)
+                i += 1
+
+        return result_lines
 
     def process_file(self, file_path: str) -> bool:
         """处理单个文件"""

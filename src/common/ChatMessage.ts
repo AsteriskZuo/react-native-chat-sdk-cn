@@ -425,11 +425,11 @@ export class ChatMessage {
   /**
    * 消息方向，详见 {@link ChatMessageDirection}。
    */
-  direction: ChatMessageDirection = ChatMessageDirection.SEND;
+  direction: ChatMessageDirection;
   /**
    * 消息发送状态，详见 {@link ChatMessageStatus}。
    */
-  status: ChatMessageStatus = ChatMessageStatus.CREATE;
+  status: ChatMessageStatus;
   /**
    * 消息的扩展属性。
    */
@@ -486,6 +486,7 @@ export class ChatMessage {
    * 是否是广播消息。
    */
   isBroadcast: boolean;
+
   /**
    * 消息内容是否被替换过。
    *
@@ -764,6 +765,7 @@ export class ChatMessage {
       isOnline?: boolean;
       deliverOnlineOnly?: boolean;
       receiverList?: string[];
+      isGif?: boolean;
     }
   ): ChatMessage {
     return ChatMessage.createSendMessage({
@@ -775,6 +777,7 @@ export class ChatMessage {
         width: opt?.width,
         height: opt?.height,
         fileSize: opt?.fileSize,
+        isGif: opt?.isGif,
       }),
       targetId: targetId,
       chatType: chatType,
@@ -1357,6 +1360,12 @@ export class ChatImageMessageBody extends _ChatFileMessageBody {
    * 图片高度，单位为像素。
    */
   height: number;
+  /**
+   * 是否是 GIF 图片。
+   * - `true`: 是 GIF 图片。
+   * - (默认）`false`: 不是 GIF 图片。
+   */
+  isGif?: boolean;
   constructor(params: {
     localPath: string;
     secret?: string;
@@ -1371,6 +1380,7 @@ export class ChatImageMessageBody extends _ChatFileMessageBody {
     thumbnailStatus?: number;
     width?: number;
     height?: number;
+    isGif?: boolean;
     lastModifyOperatorId?: string;
     lastModifyTime?: number;
     modifyCount?: number;
@@ -1396,6 +1406,7 @@ export class ChatImageMessageBody extends _ChatFileMessageBody {
     );
     this.width = params.width ?? 0;
     this.height = params.height ?? 0;
+    this.isGif = params.isGif ?? false;
   }
 }
 
@@ -1645,6 +1656,10 @@ export class ChatFetchMessageOptions {
    */
   from?: string;
   /**
+   * 群组会话中消息发送者的用户 ID 数组。
+   */
+  senders?: Array<string>;
+  /**
    * 消息类型列表。
    */
   msgTypes?: ChatMessageType[];
@@ -1668,6 +1683,7 @@ export class ChatFetchMessageOptions {
   needSave: boolean;
   constructor(params: {
     from?: string;
+    senders?: Array<string>;
     msgTypes?: ChatMessageType[];
     startTs: number;
     endTs: number;
@@ -1675,6 +1691,7 @@ export class ChatFetchMessageOptions {
     needSave: boolean;
   }) {
     this.from = params.from;
+    this.senders = params.senders;
     this.startTs = params.startTs;
     this.endTs = params.endTs;
     this.direction = params.direction;

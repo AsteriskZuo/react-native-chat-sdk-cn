@@ -36,6 +36,7 @@ import {
   MTfetchReactionDetail,
   MTfetchReactionList,
   MTfetchSupportLanguages,
+  MTgetConvsMsgsWithKeyword,
   MTgetConversation,
   MTgetConversationsFromServer,
   MTgetConversationsFromServerWithCursor,
@@ -67,6 +68,7 @@ import {
   MTmarkMessageAsRead,
   MTmessageReactionDidChange,
   MTmodifyMessage,
+  MTmodifyMsgBody,
   MTonChatThreadCreated,
   MTonChatThreadDestroyed,
   MTonChatThreadUpdated,
@@ -104,6 +106,7 @@ import {
   MTupdateChatMessage,
   MTupdateChatThreadSubject,
   MTupdateConversationMessage,
+  MTgetMessagesWithIds,
 } from './__internal__/Consts';
 import { Native } from './__internal__/Native';
 import { ChatClient } from './ChatClient';
@@ -756,6 +759,37 @@ export class ChatManager extends BaseManager {
   }
 
   /**
+   * 通过消息 ID 列表获取本地数据库中的消息。
+   *
+   * @params -
+   *  @param convId 会话 ID。
+   *  @param convType 会话类型。详见 {@link ChatConversationType}。
+   *  @param msgIds 消息 ID 列表。
+   * @returns 获取的消息列表。如果未获取到消息，则返回空列表。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async getMessagesWithIds(params: {
+    convId: string;
+    convType: ChatConversationType;
+    msgIds: Array<string>;
+  }): Promise<Array<ChatMessage>> {
+    chatlog.log(
+      `${ChatManager.TAG}: getMessagesWithIds: ${params.convId}, ${params.convType}, ${params.msgIds}`
+    );
+    let r: any = await Native._callMethod(MTgetMessagesWithIds, {
+      [MTgetMessagesWithIds]: {
+        convId: params.convId,
+        convType: params.convType,
+        msgIds: params.msgIds,
+      },
+    });
+    Native.checkErrorFromResult(r);
+    const rr = r?.[MTgetMessagesWithIds];
+    return rr.map((msg: any) => new ChatMessage(msg));
+  }
+
+  /**
    * 将所有的会话都设成已读。
    *
    * 该方法仅对本地会话有效。
@@ -982,7 +1016,7 @@ export class ChatManager extends BaseManager {
    */
   public async fetchHistoryMessages(
     convId: string,
-    chatType: ChatConversationType,
+    convType: ChatConversationType,
     params: {
       pageSize?: number;
       startMsgId?: string;
@@ -990,15 +1024,16 @@ export class ChatManager extends BaseManager {
     }
   ): Promise<ChatCursorResult<ChatMessage>> {
     chatlog.log(
-      `${ChatManager.TAG}: fetchHistoryMessages: ${convId}, ${chatType}, ${params}`
+      `${ChatManager.TAG}: fetchHistoryMessages: ${convId}, ${convType}, ${params}`
     );
     let r: any = await Native._callMethod(MTfetchHistoryMessages, {
       [MTfetchHistoryMessages]: {
         convId: convId,
-        convType: chatType as number,
+        convType: convType as number,
         pageSize: params.pageSize ?? 20,
         startMsgId: params.startMsgId ?? '',
-        direction: params.direction ?? ChatSearchDirection.UP,
+        direction:
+          params.direction === ChatSearchDirection.DOWN ? 'down' : 'up',
       },
     });
     Native.checkErrorFromResult(r);
@@ -1032,7 +1067,7 @@ export class ChatManager extends BaseManager {
    */
   public async fetchHistoryMessagesByOptions(
     convId: string,
-    chatType: ChatConversationType,
+    convType: ChatConversationType,
     params?: {
       options?: ChatFetchMessageOptions;
       cursor?: string;
@@ -1040,12 +1075,12 @@ export class ChatManager extends BaseManager {
     }
   ): Promise<ChatCursorResult<ChatMessage>> {
     chatlog.log(
-      `${ChatManager.TAG}: fetchHistoryMessagesByOptions: ${convId}, ${chatType}, ${params}`
+      `${ChatManager.TAG}: fetchHistoryMessagesByOptions: ${convId}, ${convType}, ${params}`
     );
     let r: any = await Native._callMethod(MTfetchHistoryMessagesByOptions, {
       [MTfetchHistoryMessagesByOptions]: {
         convId: convId,
-        convType: chatType as number,
+        convType: convType as number,
         pageSize: params?.pageSize ?? 20,
         cursor: params?.cursor ?? '',
         options: params?.options,
@@ -1093,7 +1128,7 @@ export class ChatManager extends BaseManager {
     let r: any = await Native._callMethod(MTsearchChatMsgFromDB, {
       [MTsearchChatMsgFromDB]: {
         keywords: keywords,
-        timeStamp: timestamp,
+        timestamp: timestamp,
         maxCount: maxCount,
         from: from,
         direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
@@ -1154,7 +1189,7 @@ export class ChatManager extends BaseManager {
     let r: any = await Native._callMethod(MTsearchChatMsgFromDB, {
       [MTsearchChatMsgFromDB]: {
         keywords: keywords,
-        timeStamp: timestamp,
+        timestamp: timestamp,
         maxCount: maxCount,
         from: from,
         direction: direction === ChatSearchDirection.UP ? 'up' : 'down',
@@ -1167,6 +1202,52 @@ export class ChatManager extends BaseManager {
     if (rr) {
       rr.forEach((element) => {
         ret.push(new ChatMessage(element));
+      });
+    }
+    return ret;
+  }
+
+  /**
+   *  通过关键字搜索本地消息。
+   *
+   * @params -
+   *  @param keywords        消息搜索的关键字。如果将此参数设置为 `undefined`，SDK 在检索消息时将忽略此参数。
+   *  @param timestamp       消息搜索的 Unix 时间戳阈值。单位是毫秒。如果将此参数设置为 `undefined`，SDK 将从最新的消息开始加载。
+   *  @param from          消息的发送者。如果将此参数设置为 `undefined`，SDK 在检索消息时将忽略此参数。
+   *  @param direction       消息搜索方向。请参阅 {@link ChatSearchDirection}。
+   *                        - `UP`: SDK 按照消息中包含的时间戳的降序检索消息。
+   *                        - `DOWN`：SDK 按照消息中包含的时间戳的升序检索消息。
+   *  @param searchScope           消息搜索范围。请参阅 {@link ChatMessageSearchScope}。
+   *
+   * @returns 包含会话 ID 和消息 ID 数组的字典。如果未获取到消息，则返回空字典。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async getConvsMsgsWithKeyword(params: {
+    keywords: string;
+    timestamp?: number;
+    from?: string;
+    direction?: ChatSearchDirection;
+    searchScope?: ChatMessageSearchScope;
+  }): Promise<Map<string, Array<string>>> {
+    chatlog.log(
+      `${ChatManager.TAG}: getConvsMsgsWithKeyword: ${params.keywords}, ${params.timestamp}, ${params.from}, ${params.direction}, ${params.searchScope}`
+    );
+    let r: any = await Native._callMethod(MTgetConvsMsgsWithKeyword, {
+      [MTgetConvsMsgsWithKeyword]: {
+        keywords: params.keywords,
+        timestamp: params.timestamp ?? -1,
+        from: params.from,
+        direction: params.direction === ChatSearchDirection.UP ? 'up' : 'down',
+        searchScope: params.searchScope ?? ChatMessageSearchScope.All,
+      },
+    });
+    Native.checkErrorFromResult(r);
+    let ret = new Map<string, Array<string>>();
+    const rr: Array<any> = r?.[MTgetConvsMsgsWithKeyword];
+    if (rr) {
+      rr.forEach((element) => {
+        ret.set(element.convId, element.msgIds);
       });
     }
     return ret;
@@ -2135,6 +2216,7 @@ export class ChatManager extends BaseManager {
     timestamp?: number;
     count?: number;
     sender?: string;
+    senders?: Array<string>;
     searchScope?: ChatMessageSearchScope;
     isChatThread?: boolean;
   }): Promise<Array<ChatMessage>> {
@@ -2146,6 +2228,7 @@ export class ChatManager extends BaseManager {
       timestamp = -1,
       count = 20,
       sender,
+      senders,
       searchScope = ChatMessageSearchScope.All,
       isChatThread = false,
     } = params;
@@ -2159,6 +2242,7 @@ export class ChatManager extends BaseManager {
       count,
       searchScope,
       sender,
+      senders,
       isChatThread
     );
     let r: any = await Native._callMethod(MTloadMsgWithKeywords, {
@@ -2170,6 +2254,7 @@ export class ChatManager extends BaseManager {
         timestamp: timestamp,
         count: count,
         sender: sender,
+        senders: senders,
         searchScope: searchScope,
         isChatThread: isChatThread,
       },
@@ -3358,6 +3443,45 @@ export class ChatManager extends BaseManager {
     });
     Native.checkErrorFromResult(r);
     const rr = r?.[MTmodifyMessage];
+    return new ChatMessage(rr);
+  }
+
+  /**
+   *   更新消息内容。本地和服务器都更新。
+   *
+   *  - Text and custom message: 消息体和扩展属性都可以修改。
+   *  - Image/voice/video/file/combined message: 只能修改消息扩展字段 `ext`。
+   *  - Command message: 此类型消息无法修改。
+   *
+   *  注意消息 ID 不能更改。
+   *
+   * @params -
+   *  @param messageId       消息 ID。
+   *  @param body            消息体。可以是文本消息体 {@link ChatTextMessageBody} 或自定义消息体 {@link ChatCustomMessageBody}。
+   *  @param ext             修改后的消息扩展信息。新的扩展信息会覆盖之前的。值 `undefined` 表示消息扩展信息保持不变。
+   *
+   * @returns 修改后的消息。详见 {@link ChatMessage}。
+   *
+   * @throws 如果有异常会在此抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   *
+   */
+  public async modifyMsgBody(params: {
+    msgId: string;
+    body?: ChatMessageBody;
+    ext?: Record<string, any>;
+  }): Promise<ChatMessage> {
+    chatlog.log(
+      `${ChatManager.TAG}: modifyMsgBody: ${params.msgId}, ${params.body?.type}, ${params.ext}`
+    );
+    let r: any = await Native._callMethod(MTmodifyMsgBody, {
+      [MTmodifyMsgBody]: {
+        msgId: params.msgId,
+        body: params.body,
+        ext: params.ext,
+      },
+    });
+    Native.checkErrorFromResult(r);
+    const rr = r?.[MTmodifyMsgBody];
     return new ChatMessage(rr);
   }
 

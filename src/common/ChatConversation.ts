@@ -191,7 +191,7 @@ export class ChatConversation {
       }
     } else if (this.convType === ChatConversationType.GroupChat) {
       const ret =
-        await ChatClient.getInstance().groupManager.fetchGroupInfoFromServer(
+        await ChatClient.getInstance().groupManager.fetchGroupInfoWithoutMembersFromServer(
           this.convId
         );
       if (ret) {
@@ -478,6 +478,7 @@ export class ChatConversation {
     timestamp?: number;
     count?: number;
     sender?: string;
+    senders?: Array<string>;
   }): Promise<Array<ChatMessage>> {
     return ChatClient.getInstance().chatManager.getMsgsWithMsgType({
       ...params,
@@ -556,6 +557,25 @@ export class ChatConversation {
   }
 
   /**
+   * 从本地获取会话中指定 ID 的消息。
+   *
+   * @params -
+   *  @param msgIds 消息 ID 列表。
+   * @returns 检索到的消息列表。如果没有获取到消息，则返回空列表。
+   *
+   * @throws 异常的描述。请参阅 {@link ChatError}。
+   */
+  public async getMessagesWithIds(params: {
+    msgIds: Array<string>;
+  }): Promise<Array<ChatMessage>> {
+    return ChatClient.getInstance().chatManager.getMessagesWithIds({
+      ...params,
+      convId: this.convId,
+      convType: this.convType,
+    });
+  }
+
+  /**
    * 检索本地数据库中会话中带有关键字的消息。
    *
    * @param keywords 查询的关键字。
@@ -607,6 +627,7 @@ export class ChatConversation {
    * - searchScope 搜索范围，请参阅 {@link ChatMessageSearchScope}。
    * - count 每次检索的最大消息数。 取值范围为[1,400]。
    * - sender 用于检索的用户 ID 或组 ID。
+   * - senders 用于检索的用户 ID 或组 ID 列表。
    *
    * @returns 检索到的消息列表（不包括具有起始时间戳的消息）。 如果没有获取到消息，则返回空列表。
    *
@@ -618,6 +639,7 @@ export class ChatConversation {
     timestamp?: number;
     count?: number;
     sender?: string;
+    senders?: Array<string>;
     searchScope?: ChatMessageSearchScope;
   }): Promise<Array<ChatMessage>> {
     return ChatClient.getInstance().chatManager.getConvMsgsWithKeyword({

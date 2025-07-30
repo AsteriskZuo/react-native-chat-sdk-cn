@@ -212,6 +212,14 @@ export class ChatOptions {
   workPathCopiable?: boolean;
 
   /**
+   * UIKit 版本。
+   *
+   * - (Default) undefined.
+   *
+   */
+  uikitVersion?: string;
+
+  /**
    * @deprecated 请使用 {@link withAppId} and {@link withAppKey} 替代.
    */
   constructor(params: {
@@ -248,6 +256,7 @@ export class ChatOptions {
     useReplacedMessageContents?: boolean;
     loginExtraInfo?: string;
     workPathCopiable?: boolean;
+    uikitVersion?: string;
   }) {
     if (!params.appKey && !params.appId) {
       throw new ChatError({
@@ -294,6 +303,7 @@ export class ChatOptions {
       params.useReplacedMessageContents ?? false;
     this.loginExtraInfo = params.loginExtraInfo;
     this.workPathCopiable = params.workPathCopiable ?? false;
+    this.uikitVersion = params.uikitVersion;
   }
 
   static withAppId(params: {
@@ -329,6 +339,7 @@ export class ChatOptions {
     useReplacedMessageContents?: boolean;
     loginExtraInfo?: string;
     workPathCopiable?: boolean;
+    uikitVersion?: string;
   }) {
     return new ChatOptions({
       ...params,
@@ -369,6 +380,7 @@ export class ChatOptions {
     useReplacedMessageContents?: boolean;
     loginExtraInfo?: string;
     workPathCopiable?: boolean;
+    uikitVersion?: string;
   }) {
     return new ChatOptions({
       ...params,

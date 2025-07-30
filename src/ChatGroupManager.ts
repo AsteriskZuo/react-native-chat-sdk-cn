@@ -21,6 +21,7 @@ import {
   MTgetGroupAnnouncementFromServer,
   MTgetGroupBlockListFromServer,
   MTgetGroupFileListFromServer,
+  MTfetchMemberInfoListFromServer,
   MTgetGroupMemberListFromServer,
   MTgetGroupMuteListFromServer,
   MTgetGroupSpecificationFromServer,
@@ -47,6 +48,7 @@ import {
   MTunMuteMembers,
   MTupdateDescription,
   MTupdateGroupAnnouncement,
+  MTupdateGroupAvatar,
   MTupdateGroupExt,
   MTupdateGroupOwner,
   MTupdateGroupSubject,
@@ -62,6 +64,7 @@ import {
   ChatGroup,
   type ChatGroupFileStatusCallback,
   ChatGroupInfo,
+  ChatGroupMember,
   ChatGroupOptions,
   ChatGroupSharedFile,
 } from './common/ChatGroup';
@@ -203,10 +206,22 @@ export class ChatGroupManager extends BaseManager {
             member: params.member,
           });
           break;
+        case 'onMembersJoined':
+          listener.onMembersJoined?.({
+            groupId: params.groupId,
+            members: params.members,
+          });
+          break;
         case 'onMemberExited':
           listener.onMemberExited?.({
             groupId: params.groupId,
             member: params.member,
+          });
+          break;
+        case 'onMembersExited':
+          listener.onMembersExited?.({
+            groupId: params.groupId,
+            members: params.members,
           });
           break;
         case 'onAnnouncementChanged':
@@ -427,7 +442,7 @@ export class ChatGroupManager extends BaseManager {
    * @param options 群组创建时需设置的选项。该参数可选，不可为 `null`。详见 {@link ChatGroupOptions}.
    * 群组的其他选项如下：
    *                      - 群组最大成员数，默认值为 200；
-   *                      - 群组类型，详见 {@link ChatGroupStyle}。默认值为 {@link ChatGroupStyle#PrivateOnlyOwnerInvite}，即私有群，仅群主可邀请用户入群；
+   *                      - 群组类型，详见 {@link ChatGroupStyle}。默认值为 {@link ChatGroupStyle.PrivateOnlyOwnerInvite}，即私有群，仅群主可邀请用户入群；
    *                      - 邀请入群是否需要对方同意，默认为 `false`，即邀请后直接入群；
    *                      - 群详情扩展。
    * @param groupName 群组名称。该参数可选，不设置传 `null`。
@@ -445,10 +460,58 @@ export class ChatGroupManager extends BaseManager {
     inviteMembers?: Array<string>,
     inviteReason?: string
   ): Promise<ChatGroup> {
-    chatlog.log(
-      `${ChatGroupManager.TAG}: createGroup: `,
+    return this.createGroupEx({
       options,
       groupName,
+      desc,
+      inviteMembers,
+      inviteReason,
+    });
+  }
+
+  /**
+   * 创建群组对象。支持设置头像。
+   *
+   * 群组创建成功后，会更新内存及数据库中的数据，多端多设备会收到相应的通知事件，然后将群组更新到内存及数据库中。
+   *
+   * 可通过设置 {@link ChatGroupEventListener} 监听相关事件。
+   *
+   * @param options 群组创建时需设置的选项。该参数可选，不可为 `null`。详见 {@link ChatGroupOptions}.
+   * 群组的其他选项如下：
+   *                      - 群组最大成员数，默认值为 200；
+   *                      - 群组类型，详见 {@link ChatGroupStyle}。默认值为 {@link ChatGroupStyle.PrivateOnlyOwnerInvite}，即私有群，仅群主可邀请用户入群；
+   *                      - 邀请入群是否需要对方同意，默认为 `false`，即邀请后直接入群；
+   *                      - 群详情扩展。
+   * @param groupName 群组名称。
+   * @param groupAvatar 群组头像。
+   * @param desc 群组描述。
+   * @param inviteMembers 群成员列表。
+   * @param inviteReason 成员入群的邀请信息。
+   * @returns 创建成功的群组实例。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async createGroupEx(params: {
+    options: ChatGroupOptions;
+    groupName: string;
+    groupAvatar?: string;
+    desc?: string;
+    inviteMembers?: Array<string>;
+    inviteReason?: string;
+  }): Promise<ChatGroup> {
+    const {
+      options,
+      groupName,
+      groupAvatar,
+      desc,
+      inviteMembers,
+      inviteReason,
+    } = params;
+    chatlog.log(
+      `${ChatGroupManager.TAG}: createGroupEx: `,
+      options,
+      groupName,
+      groupAvatar,
       desc,
       inviteMembers,
       inviteReason
@@ -456,6 +519,7 @@ export class ChatGroupManager extends BaseManager {
     let r: any = await Native._callMethod(MTcreateGroup, {
       [MTcreateGroup]: {
         groupName,
+        groupAvatar,
         desc,
         inviteMembers,
         inviteReason,
@@ -481,11 +545,43 @@ export class ChatGroupManager extends BaseManager {
     groupId: string,
     isFetchMembers: boolean = false
   ): Promise<ChatGroup | undefined> {
-    chatlog.log(`${ChatGroupManager.TAG}: fetchGroupInfoFromServer: `, groupId);
+    chatlog.log(
+      `${ChatGroupManager.TAG}: fetchGroupInfoFromServer: `,
+      groupId,
+      isFetchMembers
+    );
     let r: any = await Native._callMethod(MTgetGroupSpecificationFromServer, {
       [MTgetGroupSpecificationFromServer]: {
         groupId: groupId,
         fetchMembers: isFetchMembers,
+      },
+    });
+    ChatGroupManager.checkErrorFromResult(r);
+    const g = r?.[MTgetGroupSpecificationFromServer];
+    if (g) {
+      return new ChatGroup(g);
+    }
+    return undefined;
+  }
+
+  /**
+   * 获取群组信息，但不包含群组成员信息。
+   *
+   * @param groupId 群组 ID。
+   * @returns 群组实例。如果群组不存在，返回 `undefined`。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async fetchGroupInfoWithoutMembersFromServer(
+    groupId: string
+  ): Promise<ChatGroup | undefined> {
+    chatlog.log(
+      `${ChatGroupManager.TAG}: fetchGroupInfoWithoutMembersFromServer: `,
+      groupId
+    );
+    let r: any = await Native._callMethod(MTgetGroupSpecificationFromServer, {
+      [MTgetGroupSpecificationFromServer]: {
+        groupId: groupId,
       },
     });
     ChatGroupManager.checkErrorFromResult(r);
@@ -531,6 +627,47 @@ export class ChatGroupManager extends BaseManager {
       opt: {
         map: (param: any) => {
           return param as string;
+        },
+      },
+    });
+    return ret;
+  }
+
+  /**
+   * 从服务器分页获取群组成员信息列表。
+   *
+   * @param groupId 群组 ID。
+   * @param cursor 游标位置，从该位置开始获取数据。首次调用时传 `null`，按成员加入群组时间的倒序获取。
+   * @param limit 每页获取的群组成员数量。默认值为 200。
+   * @returns 群组成员信息列表和下次查询的游标。详见 {@link ChatCursorResult}。
+   *
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}.
+   */
+  public async fetchMemberInfoListFromServer(
+    groupId: string,
+    cursor: string,
+    limit?: number
+  ): Promise<ChatCursorResult<ChatGroupMember>> {
+    chatlog.log(
+      `${ChatGroupManager.TAG}: fetchMemberInfoListFromServer: `,
+      groupId,
+      cursor,
+      limit
+    );
+    let r: any = await Native._callMethod(MTfetchMemberInfoListFromServer, {
+      [MTfetchMemberInfoListFromServer]: {
+        groupId,
+        cursor,
+        limit: limit ?? 200,
+      },
+    });
+    let ret = new ChatCursorResult<ChatGroupMember>({
+      cursor: r?.[MTfetchMemberInfoListFromServer].cursor,
+      list: r?.[MTfetchMemberInfoListFromServer].list,
+      opt: {
+        map: (param: any) => {
+          return new ChatGroupMember(param);
         },
       },
     });
@@ -1320,6 +1457,32 @@ export class ChatGroupManager extends BaseManager {
       [MTupdateGroupAnnouncement]: {
         groupId,
         announcement,
+      },
+    });
+    ChatGroupManager.checkErrorFromResult(r);
+  }
+
+  /**
+   * 更新群组头像。
+   *
+   * @param groupId 群组 ID。
+   * @param avatar 新的群组头像。
+   *
+   * @throws 如果有异常会在这里抛出，包含错误码和错误描述，详见 {@link ChatError}。
+   */
+  public async updateGroupAvatar(
+    groupId: string,
+    avatar: string
+  ): Promise<void> {
+    chatlog.log(
+      `${ChatGroupManager.TAG}: updateGroupAvatar: `,
+      groupId,
+      avatar
+    );
+    let r: any = await Native._callMethod(MTupdateGroupAvatar, {
+      [MTupdateGroupAvatar]: {
+        groupId,
+        avatar,
       },
     });
     ChatGroupManager.checkErrorFromResult(r);

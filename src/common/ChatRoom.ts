@@ -120,6 +120,7 @@ export class ChatRoom {
    * - `false`：否。
    */
   isAllMemberMuted?: boolean;
+
   /**
    * 当前用户是否在白名单中。
    * 此属性在加入聊天室后可用。

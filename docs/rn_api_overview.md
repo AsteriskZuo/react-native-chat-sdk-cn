@@ -32,6 +32,7 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatClient.renewAgoraToken renewAgoraToken} | Renews the Agora token. |
 | {@link ChatClient.logout logout} | Logs out of the chat app. An exception message is thrown if the logout fails. |
 | {@link ChatClient.changeAppKey changeAppKey} | Updates the App Key, which is the unique identifier used to access the chat service. |
+| {@link ChatClient.changeAppId changeAppId} | Updates the App id, which is the unique identifier used to access the chat service. |
 | {@link ChatClient.compressLogs compressLogs} | Compresses the debug log file into a gzip archive. |
 | {@link ChatClient.getLoggedInDevicesFromServer getLoggedInDevicesFromServer} | Gets the list of online devices to which you have logged in with a specified account. |
 | {@link ChatClient.kickDevice kickDevice} | Logs out from a specified account on a device. |
@@ -61,10 +62,13 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | :----- | :---------- |
 | {@link ChatConnectEventListener.onConnected onConnected} | Occurs when the SDK connects to the chat server successfully. |
 | {@link ChatConnectEventListener.onDisconnected onDisconnected} | Occurs when the SDK disconnects from the chat server. |
-| {@link ChatConnectEventListener.onTokenWillExpire onTokenWillExpire} | Occurs when the Agora token is about to expire. |
-| {@link ChatConnectEventListener.onTokenDidExpire onTokenDidExpire} | Occurs when the Agora token has expired. |
+| {@link ChatConnectEventListener.onTokenWillExpire onTokenWillExpire} | Occurs when the token is about to expire. |
+| {@link ChatConnectEventListener.onTokenDidExpire onTokenDidExpire} | Occurs when the token has expired. |
 | {@link ChatConnectEventListener.onAppActiveNumberReachLimit onAppActiveNumberReachLimit} | The number of daily active users (DAU) or monthly active users (MAU) for the app has reached the upper limit. |
+| {@link ChatConnectEventListener.onOfflineMessageSyncStart onOfflineMessageSyncStart} | Callback invoked when the synchronization of offline messages starts. |
+| {@link ChatConnectEventListener.onOfflineMessageSyncFinish onOfflineMessageSyncFinish} | Callback invoked when the synchronization of offline messages finishes. |
 | {@link ChatConnectEventListener.onUserDidLoginFromOtherDevice onUserDidLoginFromOtherDevice} | Occurs when the current user account is logged in to another device. |
+| {@link ChatConnectEventListener.onUserDidLoginFromOtherDeviceWithInfo onUserDidLoginFromOtherDeviceWithInfo} | Occurs when the current user account is logged in to another device. |
 | {@link ChatConnectEventListener.onUserDidRemoveFromServer onUserDidRemoveFromServer} | Occurs when the current chat user is removed from the server. |
 | {@link ChatConnectEventListener.onUserDidForbidByServer onUserDidForbidByServer} | Occurs when the current chat user is banned from accessing the server. |
 | {@link ChatConnectEventListener.onUserDidChangePassword onUserDidChangePassword} | Occurs when the current chat user changed the password. |
@@ -95,8 +99,9 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatManager.sendMessageReadAck sendMessageReadAck} | Sends the read receipt to the server. |
 | {@link ChatManager.sendGroupMessageReadAck sendGroupMessageReadAck} | Sends the group message receipt to the server. |
 | {@link ChatManager.sendConversationReadAck sendConversationReadAck} | Sends the conversation read receipt to the server. |
-| {@link ChatManager.recallMessage recallMessage} | Recalls the sent message. |
+| {@link ChatManager.recallMessage recallMessage} | For a one-to-one chat conversation, only the message sender can recall the message that is sent successfully. If the message expires, the recall fails. |
 | {@link ChatManager.getMessage getMessage} | Gets a message from the local database by message ID. |
+| {@link ChatManager.getMessagesWithIds getMessagesWithIds} | Gets messages with the specified IDs from the local database. |
 | {@link ChatManager.markAllConversationsAsRead markAllConversationsAsRead} | Marks all conversations as read. |
 | {@link ChatManager.getUnreadCount getUnreadCount} | Gets the count of the unread messages. |
 | {@link ChatManager.insertMessage insertMessage} | Inserts a message to the conversation in the local database. |
@@ -110,11 +115,12 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatManager.fetchHistoryMessagesByOptions fetchHistoryMessagesByOptions} | retrieve the history message for the specified session from the server. |
 | {@link ChatManager.searchMsgFromDB searchMsgFromDB} | Retrieves messages with keywords in a conversation from the local database. |
 | {@link ChatManager.getMsgsWithKeyword getMsgsWithKeyword} | Retrieves messages with keywords from the local database. |
+| {@link ChatManager.getConvsMsgsWithKeyword getConvsMsgsWithKeyword} | Loads messages with the specified keyword from the local database, returning a dictionary containing conversation IDs and message ID arrays. |
 | {@link ChatManager.fetchGroupAcks fetchGroupAcks} | Uses the pagination to get read receipts for group messages from the server. |
 | {@link ChatManager.removeConversationFromServer removeConversationFromServer} | Deletes the specified conversation and its historical messages from the server. |
 | {@link ChatManager.getConversation getConversation} | Gets the conversation by conversation ID and conversation type. |
 | {@link ChatManager.getAllConversations getAllConversations} | Gets all conversations from the local database. |
-| {@link ChatManager.fetchAllConversations fetchAllConversations} | @deprecated 2023-07-24 |
+| {@link ChatManager.fetchAllConversations fetchAllConversations} | @deprecated 2023-07-24 Use {@link fetchConversationsFromServerWithCursor} instead. |
 | {@link ChatManager.deleteConversation deleteConversation} | Deletes a conversation and its local messages from the local database. |
 | {@link ChatManager.getLatestMessage getLatestMessage} | Gets the latest message from the conversation. |
 | {@link ChatManager.getLatestReceivedMessage getLatestReceivedMessage} | Gets the latest received message from the conversation. |
@@ -127,7 +133,7 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatManager.deleteMessagesWithTimestamp deleteMessagesWithTimestamp} | Deletes messages sent or received in a certain period from the local database. |
 | {@link ChatManager.deleteConversationAllMessages deleteConversationAllMessages} | Deletes all messages in the conversation from both the memory and local database. |
 | {@link ChatManager.deleteMessagesBeforeTimestamp deleteMessagesBeforeTimestamp} | Deletes local messages with timestamp that is before the specified one. |
-| {@link ChatManager.getMessagesWithMsgType getMessagesWithMsgType} | Retrieves messages of a certain type in the conversation from the local database. |
+| {@link ChatManager.getMessagesWithMsgType getMessagesWithMsgType} | Retrieves messages of a certain type in a conversation from the local database. |
 | {@link ChatManager.getMsgsWithMsgType getMsgsWithMsgType} | Retrieves messages of a certain type in the conversation from the local database. |
 | {@link ChatManager.getMessages getMessages} | Retrieves messages of a specified quantity in a conversation from the local database. |
 | {@link ChatManager.getMsgs getMsgs} | Retrieves messages of a specified quantity in a conversation from the local database. |
@@ -166,6 +172,7 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatManager.fetchPinnedConversationsFromServerWithCursor fetchPinnedConversationsFromServerWithCursor} | Get the list of pinned conversations from the server with pagination. |
 | {@link ChatManager.pinConversation pinConversation} | Sets whether to pin a conversation. |
 | {@link ChatManager.modifyMessageBody modifyMessageBody} | Modifies a message. |
+| {@link ChatManager.modifyMsgBody modifyMsgBody} | Modifies a message both in the local storage and server. |
 | {@link ChatManager.fetchCombineMessageDetail fetchCombineMessageDetail} | Gets the list of original messages included in a combined message. |
 | {@link ChatManager.addRemoteAndLocalConversationsMark addRemoteAndLocalConversationsMark} | Marks conversations. |
 | {@link ChatManager.deleteRemoteAndLocalConversationsMark deleteRemoteAndLocalConversationsMark} | Unmarks conversations. |
@@ -176,6 +183,11 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatManager.fetchPinnedMessages fetchPinnedMessages} | Gets the list of pinned messages in the conversation from the server. |
 | {@link ChatManager.getPinnedMessages getPinnedMessages} | Gets the pinned messages in a local conversation. |
 | {@link ChatManager.getMessagePinInfo getMessagePinInfo} | Gets the pinning information of a message. |
+| {@link ChatManager.searchMessages searchMessages} | Searches for messages. |
+| {@link ChatManager.searchMessagesInConversation searchMessagesInConversation} | Searches for messages in a conversation. |
+| {@link ChatManager.removeMessagesWithTimestamp removeMessagesWithTimestamp} | Delete the local and server messages of the current user. The server messages of other users in the single chat or group chat with the user will not be affected and can be obtained through roaming. |
+| {@link ChatManager.getMessageCountWithTimestamp getMessageCountWithTimestamp} | Gets the count of messages in the conversation. |
+| {@link ChatManager.getMessageCount getMessageCount} | Gets the count of messages in the local database. |
 
 | Event | Description |
 | :----- | :---------- |
@@ -184,7 +196,7 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatMessageEventListener.onMessagesRead onMessagesRead} | Occurs when a read receipt is received for a message. |
 | {@link ChatMessageEventListener.onGroupMessageRead onGroupMessageRead} | Occurs when a read receipt is received for a group message. |
 | {@link ChatMessageEventListener.onMessagesDelivered onMessagesDelivered} | Occurs when a delivery receipt is received. |
-| {@link ChatMessageEventListener.onMessagesRecalled onMessagesRecalled} | Occurs when a received message is recalled. |
+| {@link ChatMessageEventListener.onMessagesRecalledInfo onMessagesRecalledInfo} | Occurs when a received message is recalled. |
 | {@link ChatMessageEventListener.onConversationsUpdate onConversationsUpdate} | Occurs when the conversation is updated. |
 | {@link ChatMessageEventListener.onConversationRead onConversationRead} | Occurs when a conversation read receipt is received. |
 | {@link ChatMessageEventListener.onMessageReactionDidChange onMessageReactionDidChange} | Occurs when a message reaction changes. |
@@ -234,8 +246,11 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatGroupManager.fetchJoinedGroupsFromServer fetchJoinedGroupsFromServer} | Gets the list of groups that the current user has joined. |
 | {@link ChatGroupManager.fetchPublicGroupsFromServer fetchPublicGroupsFromServer} | Gets public groups from the server with pagination. |
 | {@link ChatGroupManager.createGroup createGroup} | Creates a group instance. |
+| {@link ChatGroupManager.createGroupEx createGroupEx} | Creates a group instance. |
 | {@link ChatGroupManager.fetchGroupInfoFromServer fetchGroupInfoFromServer} | Gets the group information from the server. |
+| {@link ChatGroupManager.fetchGroupInfoWithoutMembersFromServer fetchGroupInfoWithoutMembersFromServer} | Gets the group information from the server. |
 | {@link ChatGroupManager.fetchMemberListFromServer fetchMemberListFromServer} | Uses the pagination to get the member list of the group from the server. |
+| {@link ChatGroupManager.fetchMemberInfoListFromServer fetchMemberInfoListFromServer} | Uses the pagination to get the member information list of the group from the server. |
 | {@link ChatGroupManager.fetchBlockListFromServer fetchBlockListFromServer} | Uses the pagination to get the group block list from the server. |
 | {@link ChatGroupManager.fetchMuteListFromServer fetchMuteListFromServer} | Uses the pagination to get the mute list of the group from the server. |
 | {@link ChatGroupManager.fetchAllowListFromServer fetchAllowListFromServer} | Uses the pagination to get the allow list of the group from the server. |
@@ -266,6 +281,7 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatGroupManager.downloadGroupSharedFile downloadGroupSharedFile} | Downloads the shared file of the group. |
 | {@link ChatGroupManager.removeGroupSharedFile removeGroupSharedFile} | Removes a shared file of the group. |
 | {@link ChatGroupManager.updateGroupAnnouncement updateGroupAnnouncement} | Updates the group announcement. |
+| {@link ChatGroupManager.updateGroupAvatar updateGroupAvatar} | Updates the group announcement. |
 | {@link ChatGroupManager.updateGroupExtension updateGroupExtension} | Updates the group extension field. |
 | {@link ChatGroupManager.joinPublicGroup joinPublicGroup} | Joins a public group. |
 | {@link ChatGroupManager.requestToJoinPublicGroup requestToJoinPublicGroup} | Requests to join a group. |
@@ -298,7 +314,9 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatGroupEventListener.onAdminRemoved onAdminRemoved} | Occurs when the administrative privileges of an admin are removed. |
 | {@link ChatGroupEventListener.onOwnerChanged onOwnerChanged} | Occurs when the group ownership is transferred. |
 | {@link ChatGroupEventListener.onMemberJoined onMemberJoined} | Occurs when a user joins a group. |
+| {@link ChatGroupEventListener.onMembersJoined onMembersJoined} | Occurs when multiple users join a group. |
 | {@link ChatGroupEventListener.onMemberExited onMemberExited} | Occurs when a member voluntarily leaves the group. |
+| {@link ChatGroupEventListener.onMembersExited onMembersExited} | Occurs when multiple users leave a group. |
 | {@link ChatGroupEventListener.onAnnouncementChanged onAnnouncementChanged} | Occurs when the group announcement is updated. |
 | {@link ChatGroupEventListener.onSharedFileAdded onSharedFileAdded} | Occurs when a shared file is added to the group. |
 | {@link ChatGroupEventListener.onSharedFileDeleted onSharedFileDeleted} | Occurs when a shared file is removed from a group. |
@@ -316,6 +334,7 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatRoomManager.removeRoomListener removeRoomListener} | Removes the chat room listener. |
 | {@link ChatRoomManager.removeAllRoomListener removeAllRoomListener} | Removes all the chat room listeners. |
 | {@link ChatRoomManager.joinChatRoom joinChatRoom} | Joins the chat room. |
+| {@link ChatRoomManager.joinChatRoomEx joinChatRoomEx} | Joins the chat room. |
 | {@link ChatRoomManager.leaveChatRoom leaveChatRoom} | Leaves the chat room. |
 | {@link ChatRoomManager.fetchPublicChatRoomsFromServer fetchPublicChatRoomsFromServer} | Gets chat room data from the server with pagination. |
 | {@link ChatRoomManager.fetchChatRoomInfoFromServer fetchChatRoomInfoFromServer} | Gets the details of the chat room from the server. |
@@ -354,6 +373,7 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatRoomEventListener.onMemberExited onMemberExited} | Occurs when a member exits the chat room. All chat room members, except the member exiting the chat room, receive this event. |
 | {@link ChatRoomEventListener.onMemberRemoved onMemberRemoved} | Occurs when a member is removed from a chat room. The member that is kicked out of the chat room receive this event. |
 | {@link ChatRoomEventListener.onMuteListAdded onMuteListAdded} | Occurs when the chat room member(s) is/are added to the mute list. The muted members receive this event. |
+| {@link ChatRoomEventListener.onMuteListAddedV2 onMuteListAddedV2} | Occurs when the chat room member(s) is/are added to the mute list. The muted members receive this event. |
 | {@link ChatRoomEventListener.onMuteListRemoved onMuteListRemoved} | Occurs when the chat room member(s) is/are removed from the mute list. The members that are removed from the mute list receive this event. |
 | {@link ChatRoomEventListener.onAdminAdded onAdminAdded} | Occurs when a chat room member is set as an admin. The member set as the chat room admin receives this event. |
 | {@link ChatRoomEventListener.onAdminRemoved onAdminRemoved} | Occurs when the chat room member(s) is/are removed from the admin list. The admin removed from the admin list receives this event. |
@@ -430,6 +450,7 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatConversation.name name} | Gets the conversation ID. |
 | {@link ChatConversation.getUnreadCount getUnreadCount} | Gets the count of unread messages in the conversation. |
 | {@link ChatConversation.getMessageCount getMessageCount} | Gets the count of messages in the conversation. |
+| {@link ChatConversation.getMessageCountWithTimestamp getMessageCountWithTimestamp} | Gets the count of messages in the conversation. |
 | {@link ChatConversation.getLatestMessage getLatestMessage} | Gets the latest message from the conversation. |
 | {@link ChatConversation.getLatestReceivedMessage getLatestReceivedMessage} | Gets the latest message received in the conversation. |
 | {@link ChatConversation.setConversationExtension setConversationExtension} | Sets the extension information of the conversation. |
@@ -443,6 +464,7 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatConversation.getMsgsWithMsgType getMsgsWithMsgType} | Gets messages of a certain type in the conversation from the local database. |
 | {@link ChatConversation.getMessages getMessages} | Gets messages of a certain quantity in a conversation from the local database. |
 | {@link ChatConversation.getMsgs getMsgs} | Gets messages of a specified quantity in a conversation from the local database. |
+| {@link ChatConversation.getMessagesWithIds getMessagesWithIds} | Gets messages with the specified IDs from the local database. |
 | {@link ChatConversation.getMessagesWithKeyword getMessagesWithKeyword} | Gets messages with keywords in a conversation in the local database. |
 | {@link ChatConversation.getMsgsWithKeyword getMsgsWithKeyword} | Gets messages that the specified user sends in a conversation in a certain period. |
 | {@link ChatConversation.getMessageWithTimestamp getMessageWithTimestamp} | Gets messages that are sent and received in a certain period in a conversation in the local database. |
@@ -451,3 +473,5 @@ ChatSDK is a highly reliable global communication platform where your users can 
 | {@link ChatConversation.removeMessagesFromServerWithTimestamp removeMessagesFromServerWithTimestamp} | Deletes messages from the conversation (from both local storage and server). |
 | {@link ChatConversation.getPinnedMessages getPinnedMessages} | Gets the pinned messages in the conversation from the local database. |
 | {@link ChatConversation.fetchPinnedMessages fetchPinnedMessages} | Gets the pinned messages in the conversation from the server. |
+| {@link ChatConversation.searchMessages searchMessages} | Searches for messages. |
+| {@link ChatConversation.removeMessagesWithTimestamp removeMessagesWithTimestamp} | Delete the local and server messages of the current user. The server messages of other users in the single chat or group chat with the user will not be affected and can be obtained through roaming. |

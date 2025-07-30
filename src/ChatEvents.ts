@@ -136,14 +136,6 @@ export enum ChatMultiDeviceEvent {
    */
   GROUP_REMOVE_ALL_BAN,
   /**
-   * 当前用户被其他设备禁止入群。
-   */
-  GROUP_DISABLED,
-  /**
-   * 当前用户被其他设备可以入群。
-   */
-  GROUP_ABLE,
-  /**
    * 用户 A 在设备 A1 上创建了子区，则设备 A2 上会收到该事件。
    */
   THREAD_CREATE = 40,
@@ -264,10 +256,6 @@ export function ChatMultiDeviceEventFromNumber(
       return ChatMultiDeviceEvent.GROUP_ALL_BAN;
     case 33:
       return ChatMultiDeviceEvent.GROUP_REMOVE_ALL_BAN;
-    case 34:
-      return ChatMultiDeviceEvent.GROUP_DISABLED;
-    case 35:
-      return ChatMultiDeviceEvent.GROUP_ABLE;
 
     case 40:
       return ChatMultiDeviceEvent.THREAD_CREATE;
@@ -911,6 +899,16 @@ export interface ChatGroupEventListener {
    */
   onMemberJoined?(params: { groupId: string; member: string }): void;
   /**
+   * 多个群成员加入群组的回调。
+   * 
+   * 例如，用户 A 在设备 A1 上将用户 B 和用户 C 加入群组，则设备 A2 上会收到该事件。 可能收到一次或多次。一次可能是多个成员聚合通知，多次可能是单个成员分别通知。
+   *
+   * @params 参数组
+   * - Param [groupId] 群组 ID。
+   * - Param [members] 新成员的用户 ID 数组。
+   */
+  onMembersJoined?(params: { groupId: string; members: Array<string> }): void;
+  /**
    * 群组成员主动退出回调。
    *
    * @params 参数组。
@@ -918,6 +916,16 @@ export interface ChatGroupEventListener {
    * - Param [member] 退群的成员的用户 ID。
    */
   onMemberExited?(params: { groupId: string; member: string }): void;
+  /**
+   * 多个群组成员主动退出回调。
+   * 
+   * 例如，用户 A 在设备 A1 上将用户 B 和用户 C 从群组中移除，则设备 A2 上会收到该事件。 可能收到一次或多次。一次可能是多个成员聚合通知，多次可能是单个成员分别通知。
+   *
+   * @params 参数组。
+   * - Param [groupId] 群组 ID。
+   * - Param [members] 退群的成员的用户 ID 数组。
+   */
+  onMembersExited?(params: { groupId: string; members: Array<string> }): void;
   /**
    * 群公告更新回调。
    *

@@ -328,7 +328,7 @@ export class ChatContactManager extends BaseManager {
    * @throws 如果有方法调用的异常会在这里抛出，可以看到具体错误原因。参见 {@link ChatError}。
    */
   public async getContact(userId: string): Promise<ChatContact | undefined> {
-    chatlog.log(`${ChatContactManager.TAG}: getContact: `);
+    chatlog.log(`${ChatContactManager.TAG}: getContact: ${userId}`);
     let r: any = await Native._callMethod(MTgetContact, {
       [MTgetContact]: {
         userId,

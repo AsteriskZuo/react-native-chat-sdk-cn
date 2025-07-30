@@ -172,6 +172,10 @@ export class ChatGroup {
    */
   groupName: string;
   /**
+   * 群组头像。
+   */
+  groupAvatar: string;
+  /**
    * 群组的描述信息。
    */
   description: string;
@@ -233,6 +237,7 @@ export class ChatGroup {
   constructor(params: {
     groupId: string;
     groupName?: string;
+    groupAvatar?: string;
     description?: string;
     owner: string;
     announcement?: string;
@@ -248,6 +253,7 @@ export class ChatGroup {
   }) {
     this.groupId = params.groupId;
     this.groupName = params.groupName ?? '';
+    this.groupAvatar = params.groupAvatar ?? '';
     this.description = params.description ?? '';
     this.owner = params.owner ?? '';
     this.announcement = params.announcement ?? '';
@@ -407,4 +413,31 @@ export interface ChatGroupFileStatusCallback {
    * @param filePath 群组共享文件路径。
    */
   onSuccess(groupId: string, filePath: string): void;
+}
+
+/**
+ * 群成员信息类，包含群组成员的相关信息。
+ */
+export class ChatGroupMember {
+  /**
+   * 群组成员的用户 ID。
+   */
+  memberId: string;
+  /**
+   * 群组成员加入群组的 Unix 时间戳，单位为毫秒。
+   */
+  joinedTimestamp: number;
+  /**
+   * 群组成员的角色。
+   */
+  role: ChatGroupPermissionType;
+  constructor(params: {
+    memberId: string;
+    joinedTimestamp: number;
+    role: ChatGroupPermissionType;
+  }) {
+    this.memberId = params.memberId;
+    this.joinedTimestamp = params.joinedTimestamp;
+    this.role = params.role;
+  }
 }

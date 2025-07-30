@@ -798,6 +798,7 @@ export class ChatClient extends BaseManager {
     });
     ChatClient.checkErrorFromResult(r);
   }
+
   /**
    * 压缩日志文件。
    *
